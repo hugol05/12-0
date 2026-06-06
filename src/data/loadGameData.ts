@@ -25,6 +25,12 @@ function fetchJson<T>(file: string): Promise<T> {
   return p;
 }
 
+export interface RollIndex {
+  dataVersion: string;
+  minBucketSize: number;
+  buckets: RollBucket[];
+}
+
 export const loadFranchises = () => fetchJson<Franchise[]>('franchises.json');
-export const loadRollIndex = () => fetchJson<RollBucket[]>('players.roll-index.json');
+export const loadRollIndex = () => fetchJson<RollIndex>('roll-index.json');
 export const loadPlayers = () => fetchJson<Player[]>('players.json');

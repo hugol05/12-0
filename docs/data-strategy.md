@@ -26,28 +26,32 @@ The game needs **82-0-style coverage**: every valid franchise+decade bucket shou
 
 ### Source reality check (2026-06)
 
-`stats.nba.com` (and therefore `nba_api`) is **IP-restricted to residential clients** — it returns nothing to datacenter/CI egress (verified: connection fails with browser headers, while pypi/github/the NBA headshot CDN all respond `200`). So the build pipeline **cannot depend on a live `nba_api` fetch in CI or a sandbox.**
+`stats.nba.com` (and therefore a live `nba_api`) is **IP-restricted to residential clients** — it returns nothing to datacenter/CI egress (verified: it returns `000` from the sandbox, while GitHub raw and the NBA headshot CDN respond `200`). So the build pipeline **cannot depend on a live `nba_api` fetch in CI or a sandbox.**
 
-### Primary source: openly-licensed bulk datasets (redistributable)
+### Resolved sources (used by the pipeline)
 
-Shipped stats are ingested from openly-licensed public datasets, cached as raw snapshots under `data-source/raw/`, with attribution recorded in `sources.json`. Candidates (pin exact commit hashes when ingesting):
+To hit **82-0-style all-era coverage**, the owner accepted Basketball-Reference-derived bulk data for history (the only comprehensive pre-1996 source). Shipped stats are ingested from these GitHub-raw datasets, cached under `data-source/raw/`, and registered with attribution in `data-source/sources.json`:
 
 | Dataset | License | Coverage | Provides |
 |---------|---------|----------|----------|
-| [FiveThirtyEight NBA player data](https://github.com/fivethirtyeight/nba-player-advanced-metrics) | CC BY 4.0 | modern + historical | `franch_id`, position, age, per-36 rates, advanced metrics (USG%, AST%, TRB%, STL%, BLK%, RAPTOR) |
-| A 1950→present per-game/totals set (e.g. Kaggle "NBA stats since 1950" mirror) | CC BY-SA 4.0 | 1950-present | raw PPG/RPG/APG/SPG/BPG (derivable from totals÷G), position, height/weight |
-| Recent-seasons set (e.g. MIT-licensed 1996-2024 mirror) | MIT | 1996-2024 | tops up the latest seasons |
+| [`peasant98/TheNBACSV` → `nbaNew.csv`](https://github.com/peasant98/TheNBACSV) (Basketball-Reference–derived) | unlicensed source data; **owner-accepted** for a non-commercial fan game | **1950–2017**, 24.6k player-seasons, all historical team codes | per-season `Tm`, age, position, full box totals (PTS/TRB/AST/STL/BLK/TOV), advanced (PER, TS%, USG%, AST%, TRB%, STL%, BLK%, BPM, WS, VORP) |
+| [`Brescou/NBA-dataset-stats-player-team`](https://github.com/Brescou/NBA-dataset-stats-player-team) | **MIT** | **1996–2023** | NBA `PLAYER_ID` (= headshot CDN id), `TEAM_ABBREVIATION`, traditional + advanced + defense + usage, regular season **and playoffs**; `player_index` adds real **height**, position, draft, from/to year |
+| [FiveThirtyEight RAPTOR](https://github.com/fivethirtyeight/data/tree/master/nba-raptor) | **CC BY 4.0** | 1976–present | optional advanced signal (RAPTOR, WAR) for cross-checking modern ratings |
 
-Attribution (CC BY / BY-SA) is surfaced in an in-app credits/about section.
+> **Provenance note:** Basketball-Reference data is ultimately Sportradar-licensed. This is accepted as low-risk for a free, non-commercial fan project. Attribution is surfaced in the in-app credits/about section. If the project ever commercialises, the historical source must be re-licensed or replaced.
+
+### Headshots
+
+Modern players (1996+) carry the real NBA `PLAYER_ID` from the Brescou set → `https://cdn.nba.com/headshots/nba/latest/1040x760/{id}.png` (reachable, `200`), marked `status: "verified"`. Pre-1996-only players that never appear in the modern index get `status: "fallback"` (local silhouette). URLs only — binaries are never redistributed.
 
 ### Optional local refresh: `nba_api`
 
-`nba_api==1.11.4` stays in the pipeline as an **optional** path for refreshing recent seasons directly from NBA.com — but it only runs on a residential IP (the owner's machine), never in CI. The shipped dataset never requires it.
+`nba_api==1.11.4` (`requirements-dev.txt`) stays as an **optional** path for refreshing the latest seasons directly from NBA.com — it only runs on a residential IP (the owner's machine), never in CI. The shipped dataset never requires it.
 
 ### Division of labour
 
-- **Factual (ingested):** name, position, height, franchise/decade tags, PPG/RPG/APG/SPG/BPG, career totals, headshot URL (NBA CDN, reachable).
-- **Subjective (formula + curated):** the 9 ratings (Shooting … Durability). Formulas turn real stats into a 0-99 first pass; **sourced** curated overrides fix legends and pre-1973/pre-1980 gaps. We never hand-author a full roster of ratings — formulas scale, overrides target the ~100-150 players that matter most.
+- **Factual (ingested):** name, position, height (real for modern, position-estimated + flagged for old eras), franchise/decade tags, PPG/RPG/APG/SPG/BPG, career totals, advanced metrics, headshot URL.
+- **Subjective (formula + curated):** the 9 ratings (Shooting … Durability). Era-aware formulas turn real stats into a 0-99 first pass (percentile-normalised within the player's primary era so a 1960s player isn't punished for the absent 3PT/STL/BLK columns); **sourced** curated overrides in `data-source/curated/overrides.json` fix legends and pre-1973/pre-1980 gaps. Formulas scale; overrides target the ~100-150 players that matter most.
 
 **Era caveats** (drive era-aware formulas): steals/blocks only from 1973-74; 3-pointers only from 1979-80; advanced stats only from 1996-97. Players before those cutoffs get era-relative formulas plus curated defense/clutch notes, flagged `confidence: "medium"`.
 

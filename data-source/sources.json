@@ -1,36 +1,54 @@
 {
-  "$comment": "Registry of upstream data sources for the 12-0 data pipeline. The pipeline (scripts/data/) reads this to know what to download, how to attribute it, and which license governs reuse. stats.nba.com is IP-blocked in this sandbox/CI (returns 000), so nba_api is an OPTIONAL local-only refresh; the open datasets below are the primary, reproducible inputs.",
-  "version": 1,
+  "$comment": "Registry of upstream data sources for the 12-0 data pipeline (scripts/data/). stats.nba.com is IP-blocked in this sandbox/CI (returns 000), so live nba_api is an OPTIONAL local-only refresh; the GitHub-raw datasets below are the primary, reproducible inputs. The owner accepted Basketball-Reference-derived history (the only comprehensive pre-1996 source) for this non-commercial fan game. See docs/data-strategy.md.",
+  "version": 2,
   "sources": [
     {
-      "id": "fivethirtyeight-historical-raptor",
-      "title": "FiveThirtyEight Historical RAPTOR / player-season data",
-      "url": "https://github.com/fivethirtyeight/data/tree/master/nba-raptor",
-      "license": "CC BY 4.0",
-      "attribution": "Data via FiveThirtyEight (CC BY 4.0).",
+      "id": "thenbacsv-1950-2017",
+      "title": "TheNBACSV / nbaNew.csv (Basketball-Reference-derived season stats)",
+      "url": "https://github.com/peasant98/TheNBACSV",
+      "raw": "https://raw.githubusercontent.com/peasant98/TheNBACSV/master/nbaNew.csv",
+      "license": "unlicensed source data; owner-accepted for a non-commercial fan game (BR/Sportradar provenance)",
+      "attribution": "Historical stats via Basketball-Reference (data redistributed in peasant98/TheNBACSV).",
       "access": "github-raw",
-      "role": "ratings-inputs",
-      "notes": "Advanced per-season metrics from 1976-77 onward. Used as an input signal for era-aware rating formulas, not shipped verbatim."
+      "role": "shipped-stats-historical",
+      "coverage": "1950-2017",
+      "notes": "24.6k player-seasons, 3.9k players, all historical team codes (MNL, SYR, PHW, FTW, ROC...). Columns: SeasonStart, PlayerName, Pos, Age, Tm, G, MP, PER, TS%, USG%, AST%, TRB%, STL%, BLK%, BPM, WS, VORP, plus full box totals (FG..PTS). Tm='TOT' rows are season totals for traded players and must be excluded from franchise buckets."
     },
     {
-      "id": "nba-per-game-1950-present",
-      "title": "NBA per-game player stats, 1950-present",
-      "url": "https://github.com/<TBD-confirm-at-ingest>",
-      "license": "TBD-confirm",
-      "attribution": "TBD",
-      "access": "github-raw",
-      "role": "shipped-stats",
-      "notes": "Long-history per-game box stats (ppg/rpg/apg/spg/bpg). Confirm exact repo + license at first ingest run before shipping. Era caveats: steals/blocks from 1973-74; 3PT from 1979-80."
-    },
-    {
-      "id": "nba-recent-seasons-mit",
-      "title": "Recent-seasons NBA dataset (MIT)",
-      "url": "https://github.com/<TBD-confirm-at-ingest>",
+      "id": "brescou-1996-2023",
+      "title": "Brescou/NBA-dataset-stats-player-team",
+      "url": "https://github.com/Brescou/NBA-dataset-stats-player-team",
+      "raw": "https://raw.githubusercontent.com/Brescou/NBA-dataset-stats-player-team/main/",
       "license": "MIT",
-      "attribution": "TBD",
+      "attribution": "Modern stats via Brescou/NBA-dataset-stats-player-team (MIT).",
       "access": "github-raw",
-      "role": "shipped-stats",
-      "notes": "Fills modern seasons + advanced stats (TS%, usage) available from 1996-97."
+      "role": "shipped-stats-modern",
+      "coverage": "1996-2023",
+      "files": {
+        "playerIndex": "player/player_index.csv",
+        "traditionalRs": "player/player_stats_traditionnal_rs.csv",
+        "advancedRs": "player/player_stats_advanced_rs.csv",
+        "defenseRs": "player/player_stats_defense_rs.csv",
+        "usageRs": "player/player_stats_usage_rs.csv",
+        "traditionalPo": "player/player_stats_traditional_po.csv"
+      },
+      "notes": "Carries real NBA PLAYER_ID/PERSON_ID (= headshot CDN id), TEAM_ABBREVIATION, AGE, per-game traditional + advanced + defense + usage, regular season and playoffs. player_index adds HEIGHT, POSITION, DRAFT_YEAR, FROM_YEAR/TO_YEAR. Used to extend coverage to 2023, supply modern advanced/defense detail, real heights, and headshot ids."
+    },
+    {
+      "id": "fivethirtyeight-raptor",
+      "title": "FiveThirtyEight RAPTOR",
+      "url": "https://github.com/fivethirtyeight/data/tree/master/nba-raptor",
+      "raw": "https://raw.githubusercontent.com/fivethirtyeight/data/master/nba-raptor/",
+      "license": "CC BY 4.0",
+      "attribution": "Advanced metrics via FiveThirtyEight (CC BY 4.0).",
+      "access": "github-raw",
+      "role": "optional-cross-check",
+      "coverage": "1976-present",
+      "files": {
+        "historical": "historical_RAPTOR_by_player.csv",
+        "modern": "modern_RAPTOR_by_player.csv"
+      },
+      "notes": "Optional cross-check signal (RAPTOR, WAR) for modern ratings; not required to build the shipped dataset."
     },
     {
       "id": "nba-headshots-cdn",
@@ -40,7 +58,7 @@
       "attribution": "Headshots served from cdn.nba.com.",
       "access": "cdn-link",
       "role": "photos",
-      "notes": "Reachable from sandbox (200). We store URLs + a verified/fallback flag, never the binary."
+      "notes": "Reachable from sandbox (200). We store the URL + a verified/fallback flag, never the binary. playerId comes from the Brescou PLAYER_ID join."
     },
     {
       "id": "nba_api-local-refresh",
@@ -50,11 +68,11 @@
       "attribution": "nba_api by Swar Patel (MIT).",
       "access": "local-only",
       "role": "optional-refresh",
-      "notes": "stats.nba.com is blocked in this sandbox/CI. Run scripts/data/refresh_nba_api.* only on a local machine with network access; commit the cached output so CI stays reproducible."
+      "notes": "stats.nba.com is blocked in this sandbox/CI. Run a local refresh only on a machine with network access, then commit the cached output so CI stays reproducible."
     }
   ],
-  "curatedOverrides": {
-    "$comment": "Subjective ratings can be hand-tuned here when formulas miss a well-known player (e.g. defensive specialists, clutch legends). Each override must cite a rationale and is layered AFTER the era-aware formula.",
-    "file": "data-source/curated/overrides.json"
+  "curatedInputs": {
+    "franchises": "data-source/curated/franchises.json",
+    "overrides": "data-source/curated/overrides.json"
   }
 }

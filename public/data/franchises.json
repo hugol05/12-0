@@ -1,0 +1,416 @@
+[
+  {
+    "id": "ATL",
+    "name": "Atlanta Hawks",
+    "abbreviation": "ATL",
+    "baseRating2026": 74,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "BOS",
+    "name": "Boston Celtics",
+    "abbreviation": "BOS",
+    "baseRating2026": 90,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "BRK",
+    "name": "Brooklyn Nets",
+    "abbreviation": "BKN",
+    "baseRating2026": 66,
+    "decades": [
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s"
+    ]
+  },
+  {
+    "id": "CHA",
+    "name": "Charlotte Hornets",
+    "abbreviation": "CHA",
+    "baseRating2026": 66,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "CHI",
+    "name": "Chicago Bulls",
+    "abbreviation": "CHI",
+    "baseRating2026": 70,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "CLE",
+    "name": "Cleveland Cavaliers",
+    "abbreviation": "CLE",
+    "baseRating2026": 86,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "DAL",
+    "name": "Dallas Mavericks",
+    "abbreviation": "DAL",
+    "baseRating2026": 80,
+    "decades": [
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "DEN",
+    "name": "Denver Nuggets",
+    "abbreviation": "DEN",
+    "baseRating2026": 88,
+    "decades": [
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "DET",
+    "name": "Detroit Pistons",
+    "abbreviation": "DET",
+    "baseRating2026": 76,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "GSW",
+    "name": "Golden State Warriors",
+    "abbreviation": "GSW",
+    "baseRating2026": 79,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "HOU",
+    "name": "Houston Rockets",
+    "abbreviation": "HOU",
+    "baseRating2026": 84,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "IND",
+    "name": "Indiana Pacers",
+    "abbreviation": "IND",
+    "baseRating2026": 82,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "LAC",
+    "name": "LA Clippers",
+    "abbreviation": "LAC",
+    "baseRating2026": 76,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "LAL",
+    "name": "Los Angeles Lakers",
+    "abbreviation": "LAL",
+    "baseRating2026": 80,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s"
+    ]
+  },
+  {
+    "id": "MEM",
+    "name": "Memphis Grizzlies",
+    "abbreviation": "MEM",
+    "baseRating2026": 80,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "MIA",
+    "name": "Miami Heat",
+    "abbreviation": "MIA",
+    "baseRating2026": 78,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "MIL",
+    "name": "Milwaukee Bucks",
+    "abbreviation": "MIL",
+    "baseRating2026": 82,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "MIN",
+    "name": "Minnesota Timberwolves",
+    "abbreviation": "MIN",
+    "baseRating2026": 84,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "NOP",
+    "name": "New Orleans Pelicans",
+    "abbreviation": "NOP",
+    "baseRating2026": 74,
+    "decades": [
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "NYK",
+    "name": "New York Knicks",
+    "abbreviation": "NYK",
+    "baseRating2026": 87,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "OKC",
+    "name": "Oklahoma City Thunder",
+    "abbreviation": "OKC",
+    "baseRating2026": 92,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "ORL",
+    "name": "Orlando Magic",
+    "abbreviation": "ORL",
+    "baseRating2026": 81,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "PHI",
+    "name": "Philadelphia 76ers",
+    "abbreviation": "PHI",
+    "baseRating2026": 81,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "PHO",
+    "name": "Phoenix Suns",
+    "abbreviation": "PHX",
+    "baseRating2026": 76,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s"
+    ]
+  },
+  {
+    "id": "POR",
+    "name": "Portland Trail Blazers",
+    "abbreviation": "POR",
+    "baseRating2026": 66,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s"
+    ]
+  },
+  {
+    "id": "SAC",
+    "name": "Sacramento Kings",
+    "abbreviation": "SAC",
+    "baseRating2026": 74,
+    "decades": [
+      "1950s",
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "SAS",
+    "name": "San Antonio Spurs",
+    "abbreviation": "SAS",
+    "baseRating2026": 82,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "TOR",
+    "name": "Toronto Raptors",
+    "abbreviation": "TOR",
+    "baseRating2026": 70,
+    "decades": [
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  },
+  {
+    "id": "UTA",
+    "name": "Utah Jazz",
+    "abbreviation": "UTA",
+    "baseRating2026": 66,
+    "decades": [
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s"
+    ]
+  },
+  {
+    "id": "WAS",
+    "name": "Washington Wizards",
+    "abbreviation": "WAS",
+    "baseRating2026": 64,
+    "decades": [
+      "1960s",
+      "1970s",
+      "1980s",
+      "1990s",
+      "2000s",
+      "2010s",
+      "2020s"
+    ]
+  }
+]
