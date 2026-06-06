@@ -6,6 +6,15 @@
 
 ---
 
+## Randomness & Seeding
+
+All simulation randomness uses a seeded PRNG (e.g., mulberry32). The seed is derived from the player's attribute selections + franchise. This ensures:
+1. The same build always produces the exact same career.
+2. Share links can replay the career perfectly without storing history.
+3. Daily Challenge gives everyone the exact same rolls.
+
+---
+
 ## Overall Rating (OVR) Calculation
 
 ```
@@ -52,7 +61,25 @@ For a player with a 99 peak OVR:
 | 39 | 95-96 | 90-93 | 84-88 | Retired/bench |
 | 41 | 94-95 | 87-90 | Retired/bench | Retired |
 
-Retirement should consider age, OVR, injury history, and rings. A 40-year-old 94 OVR legend should not retire just because the age table says so.
+### Retirement Trigger
+
+Retirement is calculated after each season. A player retires if:
+- `(age >= retirementAge)` from durability table AND `(OVR < 80)`
+- OR `(age >= retirementAge + 2)` regardless of OVR
+- OR (major injury at age 35+) with 50% retirement chance
+
+**Exception:** Never retire a player with exactly 11 championships. Always give them one more shot at 12-0.
+
+---
+
+## Injury Mechanics
+
+Injuries appear as visible narrative events and impact Games Played (GP).
+- **Minor injury:** Miss 10-20 games.
+- **Major injury:** Miss 30-60 games.
+- **Season-ending:** Miss remaining season.
+
+Injury severity is weighted by Durability. Major injuries can cause a temporary OVR penalty (-2 to -5) for the following season. Injuries are relatively rare and usually small, adding flavor without ruining too many seasons.
 
 ---
 
@@ -61,13 +88,30 @@ Retirement should consider age, OVR, injury history, and rings. A 40-year-old 94
 Each season runs through this pipeline:
 
 1. **Calculate Player OVR** (age-adjusted, injury check)
-2. **Calculate Team Strength** = Player OVR + franchise base rating
+2. **Calculate Team Strength** = Player OVR + franchise base rating (heavily weighted towards player)
 3. **Regular Season** = Win total based on team strength + random variance (±5-10 games)
 4. **Playoff qualification** = Based on win total vs conference threshold
-5. **Playoff rounds** = Series-by-series, each with upset probability
+5. **Playoff rounds** = Series-by-series, based on team strength differentials
 6. **Finals** = If reached, win/loss based on team strength + **Clutch bonus**
 7. **Awards** = Calculated based on season performance
 8. **Off-season** = Check for trade/FA/retirement
+
+### League & Conference Structure
+
+The league consists of 30 teams divided into 2 conferences of 15.
+- Other star players are abstracted as team ratings.
+- League-average thresholds for scoring/assist/rebound titles are static constants (e.g., 28 PPG for scoring title) with small year-to-year variance (±1-2).
+- Playoffs use a simplified 8-team bracket per conference. Seeding is based on win total within the conference.
+
+### Playoff Round Probabilities
+
+For playoff rounds 1-3 (Conference playoffs):
+```javascript
+seriesWinProb = 0.5 + ((ourTeamStrength - oppTeamStrength) * 0.02)
+```
+*Example: +10 team strength difference yields a ~70% chance to win the series.*
+
+Clutch bonus only applies in the Finals (and optionally Conference Finals at half strength).
 
 ---
 
@@ -76,10 +120,14 @@ Each season runs through this pipeline:
 ### New Chapter Mode
 
 - Each NBA franchise has a **base rating** (derived from 2026 rosters)
-- Your player adds to the team's strength proportional to their OVR
 - Team ratings fluctuate ±3-5 points per season (random rebuilds, drafts, etc.)
-- A 95+ OVR player on a 75-rated team can make them contenders (~85 combined)
-- A 95+ OVR player on an 85-rated team makes a dynasty (~92 combined)
+- **Formula:** Our player is a heavy decider, like LeBron in the 2010s East.
+  ```javascript
+  teamStrength = (franchiseBase * 0.40) + (playerOVR * 0.60)
+  ```
+- **Example 1:** A 95 OVR player on an 80-rated team: `(80 * 0.4) + (95 * 0.6) = 32 + 57 = 89`.
+- **Example 2:** A 99 OVR player on a 70-rated team: `(70 * 0.4) + (99 * 0.6) = 28 + 59.4 = 87.4`.
+- This ensures an MVP-level player can single-handedly drag a mediocre franchise to the Finals.
 
 ### Rewriting History Mode (v1.5)
 
@@ -211,6 +259,9 @@ Even when the player misses 12-0, the game should produce a satisfying headline.
 | **12-0 Immortal** | 12 championships, 0 Finals losses |
 | **Russell Breaker** | 12+ championships |
 | **Jordan Argument** | 7+ Finals wins with 0 Finals losses |
+| **One-Team Myth** | 10+ championships with one franchise |
+| **Mercenary King** | Championships with 3+ different franchises |
+| **Iron Crown** | 20+ seasons with elite late-career OVR |
 | **All-Time Inner Circle** | 6+ championships or 5+ MVPs |
 | **Almost Mythic** | 10+ Finals wins but at least one Finals loss |
 | **Cult Legend** | Broken major record without reaching 8 championships |

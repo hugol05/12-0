@@ -45,7 +45,7 @@ Think: the premium feel of an NBA Finals broadcast overlay, combined with the sl
 - **Gold particle burst** on championship wins during simulation
 - **Court wood grain texture** as subtle background pattern on panels
 - **Jersey number** in giant watermark behind player card
-- **Animated silhouette** that builds up piece-by-piece as you select attributes
+- **Animated silhouette** that builds up piece-by-piece as you select attributes. (A generic dark basketball player shape. As each attribute is assigned, the corresponding body part glows: Shooting → arms, Height → full silhouette scales, Athleticism → legs, etc. Final player has all 8 segments glowing).
 - **Glowing gold border** on the final card when 12-0 is achieved
 - **Trophy stack** animation — trophies physically stack during career simulation
 - **Category icons** use consistent visual language (Lucide React icons)
@@ -77,6 +77,7 @@ Think: the premium feel of an NBA Finals broadcast overlay, combined with the sl
 - **"BUILD YOUR LEGEND"** CTA button (gold, rounded, glowing)
 - Tagline: *"Can you break Bill Russell's record?"*
 - Mode selector: **[🕰️ Rewriting History]** | **[📖 New Chapter]**
+- Difficulty selector: Pill buttons for **Easy** | **Normal** (default/highlighted) | **Hard**. (Brief tooltips on each. Once the game starts, difficulty is locked.)
 - Collapsible "How to Play" explainer below
 - *(v2: Daily Challenge banner, Leaderboard link)*
 
@@ -169,6 +170,31 @@ Golden State Warriors · 2010s
 
 ### Screen 3: Player Preview Card
 
+```
+┌───────────────────────────────────┐
+│        PLAYER ASSEMBLED           │
+├───────────────────────────────────┤
+│                                   │
+│            [OVR 94]               │
+│                                   │
+│           [RADAR CHART]           │
+│        (All 8 attributes)         │
+│                                   │
+│  [======== Durability 85 ========]│
+│                                   │
+│  BUILT WITH:                      │
+│  🎯 97 Curry      💪 99 Rodman    │
+│  📏 65 Wemby      ⚡ 82 LeBron    │
+│  🏀 92 Magic      🧠 90 Bird      │
+│  🛡️ 88 Hakeem     🔥 94 Jordan    │
+│                                   │
+│  🏠 GSW · Normal Mode             │
+│                                   │
+│  [  SIMULATE CAREER ▶️  ]         │
+│                                   │
+└───────────────────────────────────┘
+```
+
 - Full radar/spider chart of all 8 OVR attributes
 - Durability shown as a separate "career fuel" bar
 - Each attribute shows source player name + headshot
@@ -188,7 +214,7 @@ Golden State Warriors · 2010s
 - **Running Finals counter** at top: "Finals Record: 4-0 🏆🏆🏆🏆"
 - Two playback modes:
   - **Manual:** Tap to reveal next season
-  - **Auto-play:** 1-2 second delay per season
+  - **Auto-play:** Default speeds are 1.5s per regular season, 2.5s for Finals years, 3s for championship wins. Total playback for a 20-season career is ~35-45 seconds. Option to 'Skip to Results' available after season 3.
 - Championship wins: gold highlight + trophy
 - Finals losses: red border + muted
 - Team changes: "MOVED TO [TEAM]" banner

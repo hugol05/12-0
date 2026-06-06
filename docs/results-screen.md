@@ -27,6 +27,7 @@ The created player will often become statistically better than LeBron, Jordan, K
 │         [PLAYER SILHOUETTE / ASSEMBLED AVATAR]           │
 │              "The Prototype"  (nickname)                  │
 │                    OVR 97                                 │
+│          [LEGACY TIER: 12-0 Immortal]                     │
 │                                                          │
 │  ┌────────┐ ┌────────┐ ┌─────────┐ ┌────────┐           │
 │  │ 8x MVP │ │12x FMVP│ │ 17x A-S │ │ 3x DPOY│           │
@@ -89,8 +90,10 @@ The first view must be a polished poster that fits in a screenshot. Additional v
 | **Career Totals** | Prove the supergod career | Points, rebounds, assists, steals, blocks, games, seasons, playoff totals, Finals totals |
 | **Record Book** | Make broken history feel huge | Records broken, all-time rank comparisons, active record chase notes |
 | **Signature Games** | Add dynamism and absurdity | 100+ point games, 20/20/20, 5x5, Game 7 winners, 70-win seasons, 16-0 playoff runs |
-| **Journey** | Tell the career story | Team timeline, movement reasons, championships by franchise, rivalries |
+| **Journey** | Tell the career story | Team timeline, movement reasons, championships by franchise |
 | **Built With** | Reinforce the build mechanic | Attribute source players, category ratings, starting franchise, difficulty mode |
+
+*(Note: Legacy Debates and Rivalries systems are deferred to v1.5/v2 and are not required for v1.0)*
 
 ## Key Elements
 
@@ -139,8 +142,9 @@ Use record labels that feel fun and legible:
 
 ## Screenshot Layout Rules
 
-- The default poster should fit a 9:16 mobile screenshot without requiring scrolling.
-- Use dense stat rows, not giant empty cards.
+- **Dimensions:** Legacy Poster target is 390×844px (iPhone 14/15 viewport). Use CSS `aspect-ratio: 9/16` on the poster container.
+- On wider screens, the poster is centered with `max-width: 430px`.
+- Content should be dense enough to fill the frame without scrolling. Use dense stat rows, not giant empty cards.
 - Keep the headline record, awards, totals, records broken, and built-with DNA visible together.
 - Secondary views can scroll, but the first screen must be the shareable artifact.
 - Generate a clean image share in v1.5, but v1.0 must still be screenshot-safe.

@@ -138,7 +138,9 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Simulation Engine](simulation-engine.md) | OVR formula, aging curve, season pipeline, team strength, Clutch impact, stats generation, awards, difficulty tuning |
 | [Results Screen](results-screen.md) | Career summary layout, key elements, share functionality |
 | [Visual Design](visual-design.md) | Color palette, typography, design elements, animations, screen-by-screen UI flow |
-| [Data Strategy](data-strategy.md) | Data pipeline, JSON structure, player coverage, photo sources |
+| [Data Strategy](data-strategy.md) | Data pipeline, source-backed gaps, JSON structure, validation, player coverage, photo sources |
 | [Tech Stack & Architecture](tech-stack.md) | Frontend stack, PWA setup, repository structure, deployment |
 | [Social Features & Roadmap](roadmap.md) | Daily Challenge, leaderboard, scope/phasing, implementation order |
 | [Pre-Mortem](pre-mortem.md) | Product risks, balancing concerns, and upgrade ideas |
+
+**Implementation plans:** [Data Pipeline Plan](plans/2026-06-06-data-pipeline-plan.md) turns the data strategy into build tasks.
