@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://12-0.app/schemas/simulation-result.schema.json",
+  "title": "SimulationResult",
+  "description": "Output of the deterministic career simulation (src/simulation/). Consumed by the Simulate + Results screens. Kept as a schema so the engine output stays in lockstep with the UI; the canonical TS type lives in src/types/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["seed", "dataVersion", "seasons", "career", "finals"],
+  "properties": {
+    "seed": { "type": "integer" },
+    "dataVersion": { "type": "string", "minLength": 1 },
+    "seasons": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seasonIndex", "age", "team", "stats", "madeFinals", "wonChampionship"],
+        "properties": {
+          "seasonIndex": { "type": "integer", "minimum": 0 },
+          "age": { "type": "integer", "minimum": 18, "maximum": 50 },
+          "team": { "type": "string" },
+          "stats": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["ppg", "rpg", "apg", "spg", "bpg"],
+            "properties": {
+              "ppg": { "type": "number" },
+              "rpg": { "type": "number" },
+              "apg": { "type": "number" },
+              "spg": { "type": "number" },
+              "bpg": { "type": "number" },
+              "tsPct": { "type": "number" }
+            }
+          },
+          "madeFinals": { "type": "boolean" },
+          "wonChampionship": { "type": "boolean" },
+          "awards": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "career": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seasonsPlayed", "championships", "finalsRecord"],
+      "properties": {
+        "seasonsPlayed": { "type": "integer", "minimum": 0 },
+        "championships": { "type": "integer", "minimum": 0 },
+        "finalsRecord": { "type": "string", "description": "e.g. \"12-0\" wins-losses across all Finals games" },
+        "mvps": { "type": "integer", "minimum": 0 },
+        "finalsMvps": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "finals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wins", "losses", "perfect"],
+      "properties": {
+        "wins": { "type": "integer", "minimum": 0 },
+        "losses": { "type": "integer", "minimum": 0 },
+        "perfect": { "type": "boolean", "description": "true when 12-0 is achieved" }
+      }
+    }
+  }
+}

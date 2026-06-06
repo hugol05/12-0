@@ -1,0 +1,47 @@
+/* 12-0 design tokens — Dark OLED Luxury × NBA Broadcast.
+   See docs/visual-design.md. */
+
+:root {
+  /* Color palette */
+  --bg-void: #000000;
+  --bg-surface: #0a0a0f;
+  --bg-elevated: #14141f;
+  --gold-primary: #d4a853;
+  --gold-glow: #ffd700;
+  --silver: #c0c0c8;
+  --court-wood: #c4883a;
+  --text-primary: #ffffff;
+  --text-secondary: #8a8a9a;
+  --success: #4ade80;
+  --danger: #ef4444;
+
+  /* Typography — fonts loaded in fonts.css; system fallbacks until then. */
+  --font-display: 'Clash Display', 'Arial Narrow', system-ui, sans-serif;
+  --font-body: 'Satoshi', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  /* Radii */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* Elevation */
+  --shadow-gold: 0 0 24px rgba(212, 168, 83, 0.35);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.6);
+
+  /* Safe-area insets (iOS notch / home indicator) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

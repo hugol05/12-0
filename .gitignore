@@ -7,6 +7,16 @@ node_modules/
 dist/
 build/
 .vite/
+*.tsbuildinfo
+
+# Data pipeline: ignore the raw download cache, keep sources.json + curated/
+data-source/raw/
+data-source/.cache/
+
+# Python (optional local-only nba_api refresh)
+.venv/
+__pycache__/
+*.pyc
 
 # Environment files
 .env
@@ -24,4 +34,3 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
-

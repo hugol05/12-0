@@ -1,0 +1,9 @@
+# Optional, LOCAL-ONLY Python deps for refreshing data from stats.nba.com.
+# stats.nba.com is IP-blocked in the sandbox/CI (returns 000), so these are NOT
+# used by the reproducible build. Run scripts/data/refresh_nba_api.* on a machine
+# with network access, then commit the cached output so CI stays deterministic.
+# The primary pipeline ingests the openly-licensed datasets listed in
+# data-source/sources.json and needs only Node (see package.json).
+
+nba_api==1.11.4
+requests>=2.31.0

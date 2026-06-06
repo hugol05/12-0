@@ -16,7 +16,7 @@
 | **Why "12-0"** | Bill Russell holds the record with 11 championships. Beat him. |
 | **Inspiration** | [7-0](https://7a0.com.br/en) (football) and [82-0](https://www.82-0.com) (basketball) |
 | **Key Differentiator** | You build a **single player** (not a team), choosing **where to place** each attribute. Career spans 15-20 seasons, not just one. |
-| **Tech** | React 19 (Vite), Vanilla CSS, Framer Motion, PWA, static JSON data |
+| **Tech** | React 19 + TypeScript (Vite), Vanilla CSS, Framer Motion, PWA, static JSON data |
 | **Target** | Mobile-first, Vercel deployment, full offline support |
 
 ---
@@ -103,13 +103,15 @@ The player-picking phase supports three information modes:
 
 | Layer | Technology |
 |-------|------------|
-| Framework | React 19 (Vite) |
+| Framework | React 19 + TypeScript (Vite) |
 | Styling | Vanilla CSS with custom properties |
 | Icons | Lucide React |
 | Animations | Framer Motion |
 | Routing | React Router |
-| State | zustand or useReducer |
-| Data | Static JSON (pre-built from Python/nba_api) |
+| State | zustand |
+| Data | Static JSON (pre-built from Python/nba_api), served from `public/data/` |
+| Engine | Deterministic TypeScript simulator in `src/simulation/`, run in a Web Worker |
+| Tests | Vitest (engine + Monte Carlo balance), pytest (data pipeline) |
 | PWA | vite-plugin-pwa (Workbox) |
 | Deploy | Vercel |
 
@@ -143,4 +145,4 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Social Features & Roadmap](roadmap.md) | Daily Challenge, leaderboard, scope/phasing, implementation order |
 | [Pre-Mortem](pre-mortem.md) | Product risks, balancing concerns, and upgrade ideas |
 
-**Implementation plans:** [Data Pipeline Plan](plans/2026-06-06-data-pipeline-plan.md) turns the data strategy into build tasks.
+**Build sequence:** [MASTER_PLAN.md](MASTER_PLAN.md) is the single source of truth for *how* we build — phased, task-by-task, data-pipeline-first. The topic docs above are living specs (kept up to date); the master plan turns them into ordered build tasks.

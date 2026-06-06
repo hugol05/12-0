@@ -1,0 +1,5 @@
+{
+  "$comment": "Hand-tuned subjective rating overrides, layered after the era-aware formula. Key by player id. Each entry: { ratings?: partial, rationale: string }. Start empty; add only well-justified legends.",
+  "version": 1,
+  "overrides": {}
+}

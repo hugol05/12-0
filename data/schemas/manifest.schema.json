@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://12-0.app/schemas/manifest.schema.json",
+  "title": "DataManifest",
+  "description": "public/data/manifest.json. The app reads dataVersion to bust caches and stamp builds. Mirrors DataManifest in src/types/index.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dataVersion", "generatedAt", "sourceSummary", "files"],
+  "properties": {
+    "dataVersion": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "sourceSummary": { "type": "string" },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hash", "bytes"],
+        "properties": {
+          "hash": { "type": "string" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://12-0.app/schemas/roll-index.schema.json",
+  "title": "RollIndex",
+  "description": "public/data/roll-index.json. Maps every franchise+decade bucket to the player ids eligible to be rolled. A bucket only ships if it has >= 10 players (the single coverage threshold).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["dataVersion", "minBucketSize", "buckets"],
+  "properties": {
+    "dataVersion": { "type": "string", "minLength": 1 },
+    "minBucketSize": { "type": "integer", "const": 10 },
+    "buckets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["franchise", "decade", "playerIds"],
+        "properties": {
+          "franchise": { "type": "string", "minLength": 2 },
+          "decade": {
+            "enum": ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+          },
+          "playerIds": {
+            "type": "array",
+            "minItems": 10,
+            "items": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    }
+  }
+}

@@ -76,10 +76,10 @@ Think: the premium feel of an NBA Finals broadcast overlay, combined with the sl
 - Player silhouette placeholder, gently pulsing
 - **"BUILD YOUR LEGEND"** CTA button (gold, rounded, glowing)
 - Tagline: *"Can you break Bill Russell's record?"*
-- Mode selector: **[🕰️ Rewriting History]** | **[📖 New Chapter]**
 - Difficulty selector: Pill buttons for **Easy** | **Normal** (default/highlighted) | **Hard**. (Brief tooltips on each. Once the game starts, difficulty is locked.)
 - Collapsible "How to Play" explainer below
-- *(v2: Daily Challenge banner, Leaderboard link)*
+- **v1.0 ships New Chapter mode only.** Do not show a mode selector in v1.0 — the game goes straight into New Chapter. A disabled **[🕰️ Rewriting History — Coming Soon]** teaser may sit below the CTA, but it is not selectable until v1.5.
+- *(v1.5: enable the Rewriting History mode selector. v2: Daily Challenge banner, Leaderboard link.)*
 
 ### Screen 2: The Roll Phase (10 Rounds)
 

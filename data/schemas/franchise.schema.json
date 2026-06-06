@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://12-0.app/schemas/franchise.schema.json",
+  "title": "FranchiseList",
+  "description": "public/data/franchises.json. Mirrors Franchise in src/types/index.ts.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "name", "abbreviation", "baseRating2026", "decades"],
+    "properties": {
+      "id": { "type": "string", "minLength": 2 },
+      "name": { "type": "string", "minLength": 1 },
+      "abbreviation": { "type": "string", "minLength": 2, "maxLength": 4 },
+      "baseRating2026": { "type": "number", "minimum": 60, "maximum": 99 },
+      "decades": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "enum": ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+        }
+      }
+    }
+  }
+}

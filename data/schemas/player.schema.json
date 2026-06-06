@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://12-0.app/schemas/player.schema.json",
+  "title": "Player",
+  "description": "A real NBA player as shipped to public/data/players.json. Mirrors the Player type in src/types/index.ts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "positions", "teams", "stats", "ratings", "photo"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "positions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["PG", "SG", "SF", "PF", "C"] }
+    },
+    "teams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["franchise", "decades"],
+        "properties": {
+          "franchise": { "type": "string", "minLength": 2 },
+          "decades": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "$ref": "#/$defs/decade" }
+          }
+        }
+      }
+    },
+    "peakSeason": { "type": "string" },
+    "stats": { "$ref": "#/$defs/boxStats" },
+    "ratings": { "$ref": "#/$defs/ratings" },
+    "ratingMeta": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["confidence", "sourceCoverage"],
+        "properties": {
+          "confidence": { "enum": ["high", "medium", "low"] },
+          "sourceCoverage": { "enum": ["complete", "partial"] }
+        }
+      }
+    },
+    "height": { "type": "string" },
+    "photo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "status", "fallback"],
+      "properties": {
+        "url": { "type": "string" },
+        "status": { "enum": ["verified", "fallback"] },
+        "fallback": { "type": "string" }
+      }
+    }
+  },
+  "$defs": {
+    "decade": {
+      "enum": ["1940s", "1950s", "1960s", "1970s", "1980s", "1990s", "2000s", "2010s", "2020s"]
+    },
+    "boxStats": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ppg", "rpg", "apg", "spg", "bpg"],
+      "properties": {
+        "ppg": { "type": "number" },
+        "rpg": { "type": "number" },
+        "apg": { "type": "number" },
+        "spg": { "type": "number" },
+        "bpg": { "type": "number" },
+        "tsPct": { "type": "number" }
+      }
+    },
+    "ratings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shooting", "height", "playmaking", "defense", "rebounding",
+        "athleticism", "basketballIq", "clutch", "durability"
+      ],
+      "properties": {
+        "shooting": { "$ref": "#/$defs/rating" },
+        "height": { "$ref": "#/$defs/rating" },
+        "playmaking": { "$ref": "#/$defs/rating" },
+        "defense": { "$ref": "#/$defs/rating" },
+        "rebounding": { "$ref": "#/$defs/rating" },
+        "athleticism": { "$ref": "#/$defs/rating" },
+        "basketballIq": { "$ref": "#/$defs/rating" },
+        "clutch": { "$ref": "#/$defs/rating" },
+        "durability": { "$ref": "#/$defs/rating" }
+      }
+    },
+    "rating": { "type": "number", "minimum": 0, "maximum": 99 }
+  }
+}

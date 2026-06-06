@@ -1,0 +1,60 @@
+{
+  "$comment": "Registry of upstream data sources for the 12-0 data pipeline. The pipeline (scripts/data/) reads this to know what to download, how to attribute it, and which license governs reuse. stats.nba.com is IP-blocked in this sandbox/CI (returns 000), so nba_api is an OPTIONAL local-only refresh; the open datasets below are the primary, reproducible inputs.",
+  "version": 1,
+  "sources": [
+    {
+      "id": "fivethirtyeight-historical-raptor",
+      "title": "FiveThirtyEight Historical RAPTOR / player-season data",
+      "url": "https://github.com/fivethirtyeight/data/tree/master/nba-raptor",
+      "license": "CC BY 4.0",
+      "attribution": "Data via FiveThirtyEight (CC BY 4.0).",
+      "access": "github-raw",
+      "role": "ratings-inputs",
+      "notes": "Advanced per-season metrics from 1976-77 onward. Used as an input signal for era-aware rating formulas, not shipped verbatim."
+    },
+    {
+      "id": "nba-per-game-1950-present",
+      "title": "NBA per-game player stats, 1950-present",
+      "url": "https://github.com/<TBD-confirm-at-ingest>",
+      "license": "TBD-confirm",
+      "attribution": "TBD",
+      "access": "github-raw",
+      "role": "shipped-stats",
+      "notes": "Long-history per-game box stats (ppg/rpg/apg/spg/bpg). Confirm exact repo + license at first ingest run before shipping. Era caveats: steals/blocks from 1973-74; 3PT from 1979-80."
+    },
+    {
+      "id": "nba-recent-seasons-mit",
+      "title": "Recent-seasons NBA dataset (MIT)",
+      "url": "https://github.com/<TBD-confirm-at-ingest>",
+      "license": "MIT",
+      "attribution": "TBD",
+      "access": "github-raw",
+      "role": "shipped-stats",
+      "notes": "Fills modern seasons + advanced stats (TS%, usage) available from 1996-97."
+    },
+    {
+      "id": "nba-headshots-cdn",
+      "title": "NBA player headshots CDN",
+      "url": "https://cdn.nba.com/headshots/nba/latest/1040x760/{playerId}.png",
+      "license": "Reference-only (linked, not redistributed)",
+      "attribution": "Headshots served from cdn.nba.com.",
+      "access": "cdn-link",
+      "role": "photos",
+      "notes": "Reachable from sandbox (200). We store URLs + a verified/fallback flag, never the binary."
+    },
+    {
+      "id": "nba_api-local-refresh",
+      "title": "nba_api (stats.nba.com client)",
+      "url": "https://github.com/swar/nba_api",
+      "license": "MIT",
+      "attribution": "nba_api by Swar Patel (MIT).",
+      "access": "local-only",
+      "role": "optional-refresh",
+      "notes": "stats.nba.com is blocked in this sandbox/CI. Run scripts/data/refresh_nba_api.* only on a local machine with network access; commit the cached output so CI stays reproducible."
+    }
+  ],
+  "curatedOverrides": {
+    "$comment": "Subjective ratings can be hand-tuned here when formulas miss a well-known player (e.g. defensive specialists, clutch legends). Each override must cite a rationale and is layered AFTER the era-aware formula.",
+    "file": "data-source/curated/overrides.json"
+  }
+}

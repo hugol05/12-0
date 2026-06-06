@@ -20,6 +20,39 @@ The React app should only read versioned generated files. Any network fetching, 
 
 ---
 
+## Acquisition Strategy (How We Get Comprehensive Rosters)
+
+The game needs **82-0-style coverage**: every valid franchise+decade bucket should list 10+ real players, across all eras. That is thousands of player-seasons, so rosters and box stats come from **bulk datasets**, never hand-typed. Only the subjective parts (the 9 ratings) are formula-derived and curated.
+
+### Source reality check (2026-06)
+
+`stats.nba.com` (and therefore `nba_api`) is **IP-restricted to residential clients** — it returns nothing to datacenter/CI egress (verified: connection fails with browser headers, while pypi/github/the NBA headshot CDN all respond `200`). So the build pipeline **cannot depend on a live `nba_api` fetch in CI or a sandbox.**
+
+### Primary source: openly-licensed bulk datasets (redistributable)
+
+Shipped stats are ingested from openly-licensed public datasets, cached as raw snapshots under `data-source/raw/`, with attribution recorded in `sources.json`. Candidates (pin exact commit hashes when ingesting):
+
+| Dataset | License | Coverage | Provides |
+|---------|---------|----------|----------|
+| [FiveThirtyEight NBA player data](https://github.com/fivethirtyeight/nba-player-advanced-metrics) | CC BY 4.0 | modern + historical | `franch_id`, position, age, per-36 rates, advanced metrics (USG%, AST%, TRB%, STL%, BLK%, RAPTOR) |
+| A 1950→present per-game/totals set (e.g. Kaggle "NBA stats since 1950" mirror) | CC BY-SA 4.0 | 1950-present | raw PPG/RPG/APG/SPG/BPG (derivable from totals÷G), position, height/weight |
+| Recent-seasons set (e.g. MIT-licensed 1996-2024 mirror) | MIT | 1996-2024 | tops up the latest seasons |
+
+Attribution (CC BY / BY-SA) is surfaced in an in-app credits/about section.
+
+### Optional local refresh: `nba_api`
+
+`nba_api==1.11.4` stays in the pipeline as an **optional** path for refreshing recent seasons directly from NBA.com — but it only runs on a residential IP (the owner's machine), never in CI. The shipped dataset never requires it.
+
+### Division of labour
+
+- **Factual (ingested):** name, position, height, franchise/decade tags, PPG/RPG/APG/SPG/BPG, career totals, headshot URL (NBA CDN, reachable).
+- **Subjective (formula + curated):** the 9 ratings (Shooting … Durability). Formulas turn real stats into a 0-99 first pass; **sourced** curated overrides fix legends and pre-1973/pre-1980 gaps. We never hand-author a full roster of ratings — formulas scale, overrides target the ~100-150 players that matter most.
+
+**Era caveats** (drive era-aware formulas): steals/blocks only from 1973-74; 3-pointers only from 1979-80; advanced stats only from 1996-97. Players before those cutoffs get era-relative formulas plus curated defense/clutch notes, flagged `confidence: "medium"`.
+
+---
+
 ## Source Reality
 
 These are source-backed facts that shape the pipeline.
@@ -174,7 +207,7 @@ The generated dataset must fail the build if any of these checks fail:
 - Every player has all 9 ratings.
 - Every rating is an integer from 0 to 99.
 - Every player has at least one franchise/decade entry.
-- Every franchise/decade roll bucket has at least 5 playable players for v1.0 data, or the bucket is excluded from the roll table.
+- Every franchise/decade roll bucket in the roll table has **at least 10 qualifying players**; combos below 10 are excluded from the roll table.
 - No roll can produce an empty choice list after already-selected players are removed.
 - Every player photo is either verified or assigned a local fallback.
 - Every record has `holder`, `value`, `unit`, `source`, and `lastVerified`.
@@ -230,8 +263,10 @@ Required rules:
 
 ## Data Files
 
+The pipeline emits app-facing JSON into `public/data/` so the React app can lazy-fetch it at runtime (Vite serves `public/` as-is, and the PWA service worker precaches it). JSON Schemas live under `data/schemas/` and are used only by the offline build/validation, never shipped.
+
 ```
-data/
+public/data/
 ├── manifest.json              # dataVersion, generatedAt, file hashes, source summary
 ├── players.json               # player cards and multi-category ratings
 ├── players.roll-index.json    # small roll-time lookup by franchise/decade
@@ -240,11 +275,14 @@ data/
 ├── history.json               # real championship winners per season, v1.5
 ├── records.json               # all-time records and comparison thresholds
 ├── events.json                # rare career event templates and labels
-├── nicknames.json             # generated nickname templates
-└── schemas/
-    ├── player.schema.json
-    ├── franchise.schema.json
-    └── simulation-result.schema.json
+└── nicknames.json             # generated nickname templates
+
+data/schemas/                  # offline-only, not shipped
+├── player.schema.json
+├── franchise.schema.json
+├── manifest.schema.json
+├── record.schema.json
+└── simulation-result.schema.json
 ```
 
 ### Franchise Base Ratings Methodology
@@ -299,16 +337,15 @@ The `franchises.json` contains base ratings for all 30 teams for the 2026 season
 
 ## Player Coverage & Roll Weights
 
-- v1.0 target: about 150-200 total players across the 1960s-2020s.
-- **Decade boundary:** Decades equal NBA seasons starting in that decade. '1990s' = 1990-91 through 1999-00 seasons. A player is listed under a franchise/decade if they played 2+ seasons for that franchise during that decade.
-- **Bucket size:** Show all notable players for that franchise/decade combo (aim for at least 10 players per roster to provide ample choices). No pagination needed, scroll if needed on mobile.
-- Each active roll bucket needs at least 5 playable players after validation, but we aim for 10+.
+- **Coverage goal:** every valid franchise+decade combo (one where the franchise actually existed and played that decade) lists **10+ real players**, across all eras — 82-0-style depth. This means thousands of player-seasons fetched programmatically, not a fixed small pool.
+- **Decade boundary:** Decades equal NBA seasons starting in that decade. '1990s' = 1990-91 through 1999-00 seasons. A player is listed under a franchise/decade if they played **2+ seasons** for that franchise during that decade.
+- **Bucket size:** Show all qualifying players for that franchise/decade combo. No pagination — the roster scrolls on mobile (82-0 shows 79 players for "LAL · 2010s"). The card supports filter pills (All / G / F / C), search, and sort (PPG/RPG/APG…) to keep long rosters usable.
 - Players appear under every franchise/decade where they are eligible.
 - The pool must include legends, stars, high-value specialists, and role players.
-- The roll table should exclude weak franchise/decade buckets until the data is good enough.
-- **Roll Weighting:** All franchise+decade combos with at least 3 players are equally weighted in the RNG. This creates natural variance—sometimes you get the 1960s Celtics, sometimes the 2000s Bobcats.
+- **The single bucket rule:** a franchise/decade combo is included in the roll table **only if it has ≥10 qualifying players**. Combos below 10 (e.g. a franchise's first partial decade) are excluded from the roll table entirely. There is no separate 3/5/10 tiering — 10 is the one threshold used for inclusion, weighting, and validation.
+- **Roll Weighting:** all included combos (≥10 players) are equally weighted in the RNG. This creates natural variance — sometimes you get the 1960s Celtics, sometimes the 2000s Bobcats.
 
-The player count is less important than bucket quality. A 180-player dataset with validated roll buckets is better than a 500-player dataset full of missing ratings and misleading choices.
+Bucket quality beats raw player count: a dataset with validated 10+ buckets and sane ratings is better than a huge pool full of missing ratings and misleading choices.
 
 ---
 

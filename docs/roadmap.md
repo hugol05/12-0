@@ -57,17 +57,19 @@
 
 ## Implementation Order
 
-1. **Initialize repo** — Vite + React + PWA setup, deploy skeleton to Vercel
-2. **Data pipeline** — Python scripts to generate player JSON from nba_api
-3. **Design system** — CSS tokens, fonts, base components
-4. **Landing screen** — Logo, mode selection, how-to-play
-5. **Roll mechanic** — Franchise + decade roll + player list
-6. **Information difficulty** — Easy / Normal / Hard player card visibility
-7. **Category assignment** — Player-to-category placement UI
-8. **Player preview** — Radar chart + assembled player card
-9. **Simulation engine** — Career simulation logic (JS), including elite longevity and contender-weighted movement
-10. **Simulation screen** — Season-by-season display
-11. **Results screen** — Career summary, career totals, record book, screenshot-safe share poster
+> The authoritative, phase-by-phase build sequence lives in **[MASTER_PLAN.md](MASTER_PLAN.md)**. This is the high-level summary. We build **data-pipeline-first**: the real dataset and the simulation engine are built and validated before the UI, so the app is built entirely against production-shaped data (no mock data).
+
+1. **Initialize repo** — Vite + React 19 + TypeScript + PWA scaffold, deploy skeleton to Vercel
+2. **Data pipeline** — Python scripts fetch/normalize/rate/validate real NBA data → `public/data/*.json`
+3. **Simulation engine** — Deterministic TypeScript career simulator (`src/simulation/`) + Vitest Monte Carlo balance tests
+4. **Design system** — CSS tokens, fonts, base components
+5. **Landing screen** — Logo, how-to-play, difficulty selector (New Chapter only in v1.0)
+6. **Roll mechanic** — Franchise + decade roll + player list (filters/search/sort)
+7. **Information difficulty** — Easy / Normal / Hard player card visibility
+8. **Category assignment** — Player-to-category placement UI
+9. **Player preview** — Radar chart + assembled player card
+10. **Simulation screen** — Season-by-season display (driven by the Web Worker)
+11. **Results screen** — Career summary, totals, record book, screenshot-safe share poster
 12. **Polish** — Animations, micro-interactions, edge cases
 13. **PWA** — Offline support, install prompt, icons
 14. **Deploy** — Final Vercel deployment
