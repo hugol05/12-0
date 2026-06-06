@@ -1,0 +1,48 @@
+.sim {
+  min-height: 100dvh;
+  padding: calc(var(--safe-top) + var(--space-8)) var(--space-4) calc(var(--safe-bottom) + var(--space-8));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.sim .muted { color: var(--text-secondary); }
+.sim__status { font-family: var(--font-mono); }
+
+.sim__counter { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.sim__ring-box { display: flex; flex-direction: column; align-items: center; }
+.sim__ring-num { font-family: var(--font-display); font-size: 5rem; font-weight: 700; line-height: 1; color: var(--gold-primary); text-shadow: var(--shadow-gold); }
+.sim__ring-label { font-family: var(--font-mono); letter-spacing: 0.3em; color: var(--text-secondary); font-size: 0.7rem; }
+.sim__record { font-family: var(--font-mono); color: var(--text-primary); }
+.sim__record strong { color: var(--gold-glow); }
+
+.season {
+  width: 100%;
+  background: linear-gradient(160deg, var(--bg-elevated), var(--bg-surface));
+  border: 1px solid #23232f;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  box-shadow: var(--shadow-card);
+  animation: season-in 0.3s ease;
+}
+@keyframes season-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.season--finals { border-color: var(--silver); }
+.season--ring { border-color: var(--gold-primary); box-shadow: var(--shadow-gold); }
+.season__top { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); }
+.season__team { font-family: var(--font-mono); color: var(--silver); }
+.season__ovr { font-family: var(--font-mono); color: var(--gold-primary); }
+.season__record { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; text-align: center; }
+.season__stats { text-align: center; font-size: 0.85rem; color: var(--text-secondary); }
+.season__tag { text-align: center; font-weight: 600; }
+.season--ring .season__tag { color: var(--gold-glow); }
+.season__awards { text-align: center; font-size: 0.75rem; color: var(--gold-primary); font-family: var(--font-mono); }
+
+.sim__actions { min-height: 48px; display: flex; align-items: center; }
+.ghost { background: none; border: 1px solid #3a3a48; color: var(--text-secondary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); cursor: pointer; }
+.ghost:disabled { opacity: 0.4; cursor: not-allowed; }

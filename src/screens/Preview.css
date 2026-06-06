@@ -1,0 +1,40 @@
+.preview {
+  min-height: 100dvh;
+  padding: calc(var(--safe-top) + var(--space-6)) var(--space-4) calc(var(--safe-bottom) + var(--space-8));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 480px;
+  margin: 0 auto;
+}
+.preview .muted { color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.preview__head { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-1); }
+.preview__ovr { display: flex; align-items: baseline; gap: var(--space-2); }
+.preview__ovr-num { font-family: var(--font-display); font-size: 4rem; font-weight: 700; color: var(--gold-primary); line-height: 1; text-shadow: var(--shadow-gold); }
+.preview__ovr-label { font-family: var(--font-mono); color: var(--text-secondary); letter-spacing: 0.2em; }
+.preview__team { color: var(--text-primary); font-weight: 600; }
+
+.preview__durability { width: 100%; }
+.preview__durability-head { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; }
+.preview__durability-val { font-family: var(--font-mono); color: var(--gold-primary); }
+.fuel { height: 10px; background: var(--bg-elevated); border-radius: var(--radius-full); overflow: hidden; border: 1px solid #23232f; }
+.fuel__fill { height: 100%; background: linear-gradient(90deg, var(--court-wood), var(--gold-glow)); }
+
+.builtwith { width: 100%; }
+.builtwith__title { font-family: var(--font-display); font-size: 1rem; margin-bottom: var(--space-2); }
+.builtwith__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.builtwith__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid #23232f;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+.builtwith__cat { color: var(--text-secondary); }
+.builtwith__player { color: var(--text-primary); font-weight: 600; }
+.builtwith__rating { font-family: var(--font-mono); color: var(--gold-primary); min-width: 2ch; text-align: right; }

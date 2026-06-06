@@ -7,6 +7,7 @@ import type {
   GameMode,
   RatingCategory,
 } from '@/types';
+import type { SimulationResult } from '@/simulation/types';
 
 const STORAGE_VERSION = 1;
 
@@ -18,12 +19,19 @@ interface GameState {
   assignments: AttributeAssignment[];
   franchise: FranchiseSelection | null;
   usedBuckets: string[]; // "GSW:2010s" strings already rolled
+  seed: number | null;
+  result: SimulationResult | null; // not persisted — recomputed/replayed each run
 
   // actions
   setMode: (mode: GameMode) => void;
   setDifficulty: (d: Difficulty) => void;
   assignPlayer: (a: AttributeAssignment) => void;
   setFranchise: (f: FranchiseSelection) => void;
+  markBucketUsed: (key: string) => void;
+  useReroll: () => void;
+  advanceRoll: () => void;
+  setSeed: (seed: number) => void;
+  setResult: (r: SimulationResult | null) => void;
   reset: () => void;
 }
 
@@ -35,6 +43,8 @@ const initialState = {
   assignments: [] as AttributeAssignment[],
   franchise: null as FranchiseSelection | null,
   usedBuckets: [] as string[],
+  seed: null as number | null,
+  result: null as SimulationResult | null,
 };
 
 export const useGameStore = create<GameState>()(
@@ -49,11 +59,28 @@ export const useGameStore = create<GameState>()(
           assignments: [...s.assignments.filter((x) => x.category !== a.category), a],
         })),
       setFranchise: (franchise) => set({ franchise }),
+      markBucketUsed: (key) =>
+        set((s) => (s.usedBuckets.includes(key) ? s : { usedBuckets: [...s.usedBuckets, key] })),
+      useReroll: () => set((s) => ({ rerollsLeft: Math.max(0, s.rerollsLeft - 1) })),
+      advanceRoll: () => set((s) => ({ rollIndex: s.rollIndex + 1 })),
+      setSeed: (seed) => set({ seed }),
+      setResult: (result) => set({ result }),
       reset: () => set({ ...initialState }),
     }),
     {
       name: '12-0:build',
       version: STORAGE_VERSION,
+      // The simulation result is large and re-derivable from the build; never persist it.
+      partialize: (s) => ({
+        mode: s.mode,
+        difficulty: s.difficulty,
+        rollIndex: s.rollIndex,
+        rerollsLeft: s.rerollsLeft,
+        assignments: s.assignments,
+        franchise: s.franchise,
+        usedBuckets: s.usedBuckets,
+        seed: s.seed,
+      }),
     },
   ),
 );
