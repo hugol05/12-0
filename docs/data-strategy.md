@@ -292,7 +292,16 @@ data/schemas/                  # offline-only, not shipped
 ```
 
 ### Franchise Base Ratings Methodology
-The `franchises.json` contains base ratings for all 30 teams for the 2026 season. These ratings are manually curated based on current projections on a 65-90 scale (e.g., 65 for a rebuilding team, 85 for a heavy contender).
+`franchises.json` carries three curated trajectory inputs per team, all grounded in a real
+**2025-26 snapshot** (`$franchiseModel.lastVerified: 2026-06-07`):
+
+- **`baseRating2026`** (60–99) — derived from real win totals: `round(60 + (wins − 17) / 47 × 35)` (64 W ≈ 95, 53 W ≈ 87, 42 W ≈ 79, 17 W = 60). No longer eyeballed.
+- **`marketTier`** (`large`/`mid`/`small`) — the owner's free-agent desirability tier.
+- **`youthIndex`** (0–1) — roster-youth runway from mean age: `round2(clamp((28.7 − meanAge) / 5.3, 0, 1))`.
+
+The engine seeds the league from `baseRating2026` and drifts each team along a market/youth
+trajectory rather than a random walk — see [simulation-engine.md](simulation-engine.md)
+§Franchise Strength & Trajectory for the model and example traces.
 
 ---
 

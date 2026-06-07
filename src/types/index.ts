@@ -77,6 +77,8 @@ export interface Franchise {
   name: string; // "Golden State Warriors"
   abbreviation: string;
   baseRating2026: number; // 65-90 scale
+  marketTier?: 'large' | 'mid' | 'small'; // WS7 franchise-trajectory inputs (emitted by the pipeline)
+  youthIndex?: number; // 0-1, higher = younger roster
   decades: Decade[];
 }
 

@@ -2,7 +2,8 @@ import type { AttributeAssignment, RatingCategory, Ratings } from '@/types';
 import { computeOvr } from './categories';
 import { SeededRng } from './seededRng';
 import type {
-  CareerSummary, FinalsSummary, SeasonResult, SeasonStatLine, SimContext, SimulationResult,
+  CareerSummary, FinalsSummary, MarketTier, SeasonResult, SeasonStatLine,
+  SimContext, SimFranchise, SimulationResult,
 } from './types';
 
 // ---- tunable constants (calibrated via career.test.ts Monte Carlo) ----
@@ -12,6 +13,27 @@ const SERIES_COEFF = 0.05; // strength delta -> series prob
 const ROUND_OPP = [66, 73, 78, 82]; // R1, R2, ConfFinals, Finals baseline opponent strength
 const ROUND_STAGES = ['firstRound', 'confSemis', 'confFinals', 'finals'] as const; // round idx -> stage reached
 const TITLE_CAP = 12;
+
+// ---- franchise trajectory model (WS7) ----
+// Each season a team's rating drifts by: random noise + a market bias + a
+// youth bias that decays as the simulated career advances. Big markets reload
+// via free agency (steady upward); small markets only rise while their young
+// core's window is open, then regress. Deterministic — one seeded draw/team/season.
+const DRIFT_NOISE = 3; // +/- random component per season (was +/-4 pure random)
+const MARKET_STEADY: Record<MarketTier, number> = { large: 0.8, mid: 0, small: -0.6 };
+const YOUTH_GAIN = 1.6; // peak per-season upward push for a maximally-young roster
+const YOUTH_WINDOW = 8; // seasons until the youth window fully closes
+const DEFAULT_MARKET: MarketTier = 'mid';
+const DEFAULT_YOUTH = 0.5;
+
+/** Biased per-season rating drift for one team, `yearsElapsed` into the career. */
+function seasonDrift(team: LeagueTeam, yearsElapsed: number, rng: SeededRng): number {
+  const noise = rng.range(-DRIFT_NOISE, DRIFT_NOISE);
+  // fraction of the youth window still open (1 at career start -> 0 after YOUTH_WINDOW seasons)
+  const windowOpen = clamp(1 - yearsElapsed / YOUTH_WINDOW, 0, 1);
+  const youthBias = team.youthIndex * windowOpen * YOUTH_GAIN; // decays to 0 as the window closes
+  return noise + MARKET_STEADY[team.marketTier] + youthBias;
+}
 
 const RATING_KEYS: RatingCategory[] = [
   'shooting', 'height', 'playmaking', 'defense', 'rebounding', 'athleticism', 'basketballIq', 'clutch', 'durability',
@@ -87,7 +109,34 @@ function generateStats(ratings: Ratings, form: number, rng: SeededRng): SeasonSt
   };
 }
 
-interface LeagueTeam { id: string; rating: number; }
+interface LeagueTeam { id: string; rating: number; marketTier: MarketTier; youthIndex: number; }
+
+/**
+ * Project each franchise's rating path over `seasons` years under the WS7
+ * market/youth trajectory model, isolated from any player. Useful for
+ * inspecting league drift (tests, a `?debug` trace panel). Deterministic for a
+ * given seed — mirrors the exact seeding + drift used inside `simulateCareer`.
+ * Returns franchiseId -> [baseRating, …rating after each season].
+ */
+export function projectLeagueTrajectory(
+  franchises: SimFranchise[], seed: number, seasons: number,
+): Map<string, number[]> {
+  const rng = new SeededRng(seed);
+  const league: LeagueTeam[] = franchises.map((f) => ({
+    id: f.id,
+    rating: f.baseRating2026,
+    marketTier: f.marketTier ?? DEFAULT_MARKET,
+    youthIndex: f.youthIndex ?? DEFAULT_YOUTH,
+  }));
+  const series = new Map<string, number[]>(league.map((t) => [t.id, [t.rating]]));
+  for (let i = 0; i < seasons; i++) {
+    for (const t of league) {
+      t.rating = clamp(t.rating + seasonDrift(t, i, rng), 58, 95);
+      series.get(t.id)!.push(t.rating);
+    }
+  }
+  return series;
+}
 
 export function simulateCareer(ctx: SimContext): SimulationResult {
   const { build, ratings, franchises } = ctx;
@@ -97,8 +146,13 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
   const clutch = ratings.clutch;
   const retireAge = retirementAge(durability);
 
-  // league model: every franchise gets a drifting rating
-  const league: LeagueTeam[] = franchises.map((f) => ({ id: f.id, rating: f.baseRating2026 }));
+  // league model: every franchise gets a rating that drifts along a market/youth trajectory
+  const league: LeagueTeam[] = franchises.map((f) => ({
+    id: f.id,
+    rating: f.baseRating2026,
+    marketTier: f.marketTier ?? DEFAULT_MARKET,
+    youthIndex: f.youthIndex ?? DEFAULT_YOUTH,
+  }));
   const leagueById = new Map(league.map((t) => [t.id, t]));
   const startId = build.franchise.franchise;
   let currentTeam = leagueById.get(startId) ? startId : (franchises[0]?.id ?? startId);
@@ -115,8 +169,8 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
 
   let age = START_AGE;
   for (let i = 0; ; i++) {
-    // drift league ratings each season
-    for (const t of league) t.rating = clamp(t.rating + rng.range(-4, 4), 58, 95);
+    // drift league ratings each season along their market/youth trajectory
+    for (const t of league) t.rating = clamp(t.rating + seasonDrift(t, i, rng), 58, 95);
 
     const aged = peakOvr * ageFactor(age, durability);
     const ovr = clamp(Math.round(aged - ovrPenalty), 30, 99);

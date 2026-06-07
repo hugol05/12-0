@@ -55,6 +55,8 @@ export default function Replay() {
             id: f.id,
             name: f.name,
             baseRating2026: f.baseRating2026,
+            marketTier: f.marketTier,
+            youthIndex: f.youthIndex,
           })),
         };
         return runCareerInWorker(ctx);

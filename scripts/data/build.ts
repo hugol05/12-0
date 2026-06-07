@@ -79,7 +79,10 @@ async function main(): Promise<void> {
 
   // ---- curated inputs ----
   const franchiseDoc = await readJson<{
-    franchises: { id: string; name: string; abbreviation: string; baseRating2026: number; teamCodes: string[] }[];
+    franchises: {
+      id: string; name: string; abbreviation: string; baseRating2026: number;
+      marketTier: 'large' | 'mid' | 'small'; youthIndex: number; teamCodes: string[];
+    }[];
     defunctCodes: Record<string, string>;
     excludeCodes: string[];
   }>(join(CURATED_DIR, 'franchises.json'));
@@ -359,6 +362,7 @@ async function main(): Promise<void> {
     .filter((f) => survivingFranDecades.has(f.id))
     .map((f) => ({
       id: f.id, name: f.name, abbreviation: f.abbreviation, baseRating2026: f.baseRating2026,
+      marketTier: f.marketTier, youthIndex: f.youthIndex,
       decades: [...survivingFranDecades.get(f.id)!].sort(),
     }));
 

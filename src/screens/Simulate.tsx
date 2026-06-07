@@ -66,7 +66,10 @@ export default function Simulate() {
       const ctx: SimContext = {
         build,
         ratings: assignmentsToRatings(assignments),
-        franchises: data.franchises.map((f) => ({ id: f.id, name: f.name, baseRating2026: f.baseRating2026 })),
+        franchises: data.franchises.map((f) => ({
+          id: f.id, name: f.name, baseRating2026: f.baseRating2026,
+          marketTier: f.marketTier, youthIndex: f.youthIndex,
+        })),
       };
       return runCareerInWorker(ctx);
     }).then((r) => setResult(r)).catch(() => navigate('/preview'));

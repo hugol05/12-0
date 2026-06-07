@@ -119,8 +119,10 @@ Clutch bonus only applies in the Finals (and optionally Conference Finals at hal
 
 ### New Chapter Mode
 
-- Each NBA franchise has a **base rating** (derived from 2026 rosters)
-- Team ratings fluctuate ±3-5 points per season (random rebuilds, drafts, etc.)
+- Each NBA franchise has a **base rating** (`baseRating2026`, 60–99) plus two trajectory
+  inputs — **`marketTier`** (`large`/`mid`/`small`) and **`youthIndex`** (0–1, higher = younger).
+  All three are curated in `data-source/curated/franchises.json` and emitted to
+  `public/data/franchises.json` by the pipeline.
 - **Formula:** Our player is a heavy decider, like LeBron in the 2010s East.
   ```javascript
   teamStrength = (franchiseBase * 0.40) + (playerOVR * 0.60)
@@ -128,6 +130,34 @@ Clutch bonus only applies in the Finals (and optionally Conference Finals at hal
 - **Example 1:** A 95 OVR player on an 80-rated team: `(80 * 0.4) + (95 * 0.6) = 32 + 57 = 89`.
 - **Example 2:** A 99 OVR player on a 70-rated team: `(70 * 0.4) + (99 * 0.6) = 28 + 59.4 = 87.4`.
 - This ensures an MVP-level player can single-handedly drag a mediocre franchise to the Finals.
+
+#### Franchise Strength & Trajectory (WS7)
+
+The franchise base ratings are **grounded in real 2025-26 results**, not eyeballed.
+`baseRating2026 = round(60 + (wins − 17) / 47 × 35)` maps the owner's 2025-26 win
+snapshot onto a 60–99 scale (64 W ≈ 95, 53 W ≈ 87, 42 W ≈ 79, 17 W = 60). `marketTier`
+comes from the owner's desirability tier (Good→`large`, Mid→`mid`, Bad→`small`) and
+`youthIndex = round2(clamp((28.7 − meanAge) / 5.3, 0, 1))` from each roster's mean age
+(source snapshot `lastVerified: 2026-06-07`, recorded in `franchises.json` → `$franchiseModel`).
+
+Instead of a pure random walk, each franchise's rating drifts every season along a
+**biased trajectory** (deterministic — one seeded draw per team per season):
+
+```
+drift = noise(±3) + marketBias + youthBias(yearsElapsed)
+  marketBias  = { large: +0.8, mid: 0, small: −0.6 }[marketTier]   // big markets reload via FA
+  youthBias   = youthIndex × clamp(1 − yearsElapsed/8, 0, 1) × 1.6 // upside that decays as the window closes
+rating        = clamp(rating + drift, 58, 95)
+```
+
+So **large markets trend steadily up** (reload through free agency regardless of age),
+**small markets rise only while their young core's window is open** and then regress as it
+closes, and **mid markets** ride a youth tailwind early that flattens out. Averaged traces
+(400 seeds, 15 seasons) bear this out: BOS 89→94 (large, ceiling-bound up), LAC 79→90 (large,
+old roster still reloads), OKC 95→87 (small + young: peaks, then the window closes), SAC
+64→61 (small + old: regresses), ATL 82→88 (mid + young: rises then plateaus). The model lives
+in `seasonDrift()` in `src/simulation/career.ts`; `projectLeagueTrajectory()` exposes the
+per-franchise rating path for inspection (used by `career.test.ts`).
 
 ### Rewriting History Mode (v1.5)
 

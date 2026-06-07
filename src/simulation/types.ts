@@ -1,10 +1,24 @@
 import type { PlayerBuild, Ratings } from '@/types';
 
+/** Owner desirability tier — how attractive a franchise is to free agents. */
+export type MarketTier = 'large' | 'mid' | 'small';
+
 /** Minimal franchise info the engine needs (from franchises.json). */
 export interface SimFranchise {
   id: string;
   name: string;
   baseRating2026: number;
+  /**
+   * Market desirability (WS7). Large markets reload via free agency; small
+   * markets must win young. Optional so older callers keep compiling — the
+   * engine defaults to a neutral 'mid' market when absent.
+   */
+  marketTier?: MarketTier;
+  /**
+   * Roster-youth index 0–1 (WS7), higher = younger = more upside runway.
+   * Optional; the engine defaults to a neutral 0.5 when absent.
+   */
+  youthIndex?: number;
 }
 
 export interface SimContext {
