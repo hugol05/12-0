@@ -10,6 +10,7 @@ const START_AGE = 19;
 const PLAYOFF_WIN_THRESHOLD = 42;
 const SERIES_COEFF = 0.05; // strength delta -> series prob
 const ROUND_OPP = [66, 73, 78, 82]; // R1, R2, ConfFinals, Finals baseline opponent strength
+const ROUND_STAGES = ['firstRound', 'confSemis', 'confFinals', 'finals'] as const; // round idx -> stage reached
 const TITLE_CAP = 12;
 
 const RATING_KEYS: RatingCategory[] = [
@@ -146,6 +147,8 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     const madePlayoffs = injury !== 'season-ending' && wins >= PLAYOFF_WIN_THRESHOLD;
     let madeFinals = false;
     let wonChampionship = false;
+    // deepest stage reached — derived from the same 4-round sim (no extra RNG).
+    let roundReached: SeasonResult['roundReached'] = madePlayoffs ? 'firstRound' : 'missed';
     if (madePlayoffs) {
       let alive = true;
       for (let round = 0; round < 4 && alive; round++) {
@@ -154,9 +157,10 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
         const bonus = isFinals ? clutchFinalsBonus(clutch) : isConfFinals ? clutchFinalsBonus(clutch) / 2 : 0;
         const opp = clamp(ROUND_OPP[round] + rng.range(-3, 3), 55, 95);
         const prob = seriesWinProb(strength, opp, bonus);
+        roundReached = ROUND_STAGES[round]; // reached/playing this round
         if (isFinals) madeFinals = true;
         if (rng.chance(prob)) {
-          if (isFinals) wonChampionship = true;
+          if (isFinals) { wonChampionship = true; roundReached = 'champion'; }
         } else {
           alive = false;
           if (isFinals) finalsLosses++;
@@ -165,7 +169,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     }
 
     if (wonChampionship && championships < TITLE_CAP) championships++;
-    else if (wonChampionship) wonChampionship = false; // hard cap at 12 titles
+    else if (wonChampionship) { wonChampionship = false; roundReached = 'finals'; } // hard cap at 12 titles
 
     // awards
     const awards: string[] = [];
@@ -186,7 +190,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
 
     seasons.push({
       seasonIndex: i, age, team: currentTeam, ovr, teamStrength: round1(strength), wins, losses,
-      gamesPlayed: gp, madePlayoffs, madeFinals, wonChampionship, injury, stats, awards,
+      gamesPlayed: gp, madePlayoffs, madeFinals, wonChampionship, roundReached, injury, stats, awards,
     });
 
     // retirement

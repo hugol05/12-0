@@ -8,41 +8,103 @@
   gap: var(--space-6);
   max-width: 480px;
   margin: 0 auto;
+  background: var(--gradient-spotlight), var(--bg-void);
 }
 .sim .muted { color: var(--text-secondary); }
-.sim__status { font-family: var(--font-mono); }
+.sim__status { font-family: var(--font-mono); font-size: var(--text-sm); }
 
+/* ── running Finals counter ───────────────────────────────── */
 .sim__counter { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
-.sim__ring-box { display: flex; flex-direction: column; align-items: center; }
-.sim__ring-num { font-family: var(--font-display); font-size: 5rem; font-weight: 700; line-height: 1; color: var(--gold-primary); text-shadow: var(--shadow-gold); }
-.sim__ring-label { font-family: var(--font-mono); letter-spacing: 0.3em; color: var(--text-secondary); font-size: 0.7rem; }
-.sim__record { font-family: var(--font-mono); color: var(--text-primary); }
-.sim__record strong { color: var(--gold-glow); }
+.sim__eyebrow {
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+}
+.sim__record { display: flex; align-items: baseline; gap: var(--space-2); font-family: var(--font-display); font-weight: var(--weight-bold); line-height: 1; }
+.sim__record-num { font-size: 4.5rem; color: var(--gold-primary); text-shadow: var(--shadow-gold); }
+.sim__record-num--loss { color: var(--text-secondary); text-shadow: none; }
+.sim__record-dash { font-size: 3rem; color: var(--text-tertiary); }
+.sim__rings { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; min-height: 14px; max-width: 220px; }
+.sim__ring-dot {
+  width: 11px; height: 11px; border-radius: var(--radius-full);
+  background: var(--gradient-gold);
+  box-shadow: var(--shadow-gold);
+}
+.sim__ring-more { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--gold-primary); }
+
+/* ── current-season stage ─────────────────────────────────── */
+.sim__stage { width: 100%; min-height: 220px; display: flex; align-items: center; justify-content: center; }
 
 .season {
+  position: relative;
   width: 100%;
-  background: linear-gradient(160deg, var(--bg-elevated), var(--bg-surface));
-  border: 1px solid #23232f;
+  background: var(--gradient-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  padding: var(--space-6) var(--space-4) var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   box-shadow: var(--shadow-card);
-  animation: season-in 0.3s ease;
+  overflow: hidden;
 }
-@keyframes season-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
 .season--finals { border-color: var(--silver); }
-.season--ring { border-color: var(--gold-primary); box-shadow: var(--shadow-gold); }
-.season__top { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); }
-.season__team { font-family: var(--font-mono); color: var(--silver); }
-.season__ovr { font-family: var(--font-mono); color: var(--gold-primary); }
-.season__record { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; text-align: center; }
-.season__stats { text-align: center; font-size: 0.85rem; color: var(--text-secondary); }
-.season__tag { text-align: center; font-weight: 600; }
-.season--ring .season__tag { color: var(--gold-glow); }
-.season__awards { text-align: center; font-size: 0.75rem; color: var(--gold-primary); font-family: var(--font-mono); }
+.season--ring { border-color: var(--gold-primary); box-shadow: var(--shadow-gold-strong); }
+
+.season__moved {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+  padding: 4px var(--space-3);
+  background: var(--accent-electric-soft);
+  border-bottom: 1px solid var(--accent-electric);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent-electric);
+}
+
+.season__top { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-2); }
+.season__year { font-family: var(--font-mono); font-size: var(--text-lg); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.season__age { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); }
+
+.season__record { display: flex; align-items: baseline; justify-content: center; gap: var(--space-2); position: relative; }
+.season__wins { font-family: var(--font-display); font-size: var(--text-4xl); font-weight: var(--weight-bold); color: var(--text-primary); line-height: 1; }
+.season__sep { font-family: var(--font-display); font-size: var(--text-2xl); color: var(--text-tertiary); }
+.season__losses { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: var(--weight-bold); color: var(--text-secondary); }
+.season__ovr { position: absolute; right: 0; bottom: 4px; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--gold-primary); }
+
+.season__stats { display: flex; justify-content: center; gap: var(--space-8); }
+.season__stat { display: flex; flex-direction: column; align-items: center; }
+.season__stat-v { font-family: var(--font-mono); font-size: var(--text-xl); color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.season__stat-l { font-size: var(--text-xs); letter-spacing: var(--tracking-wide); color: var(--text-secondary); }
+
+.season__tag { text-align: center; font-weight: var(--weight-semibold); font-size: var(--text-sm); color: var(--text-secondary); }
+.season__tag--finals { color: var(--silver); }
+.season__tag--ring { color: var(--gold-glow); font-family: var(--font-display); letter-spacing: var(--tracking-wide); }
+.season__tag--injury { color: var(--danger); }
+
+.season__awards { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); }
+.season__award {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gold-primary);
+  border: 1px solid var(--gold-soft);
+  background: var(--gold-soft);
+  border-radius: var(--radius-full);
+  padding: 2px var(--space-2);
+}
+
+.season__burst {
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 215, 0, 0.35) 0%, transparent 60%);
+}
 
 .sim__actions { min-height: 48px; display: flex; align-items: center; }
-.ghost { background: none; border: 1px solid #3a3a48; color: var(--text-secondary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); cursor: pointer; }
+.ghost { background: none; border: 1px solid var(--border-strong); color: var(--text-secondary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-full); cursor: pointer; }
 .ghost:disabled { opacity: 0.4; cursor: not-allowed; }

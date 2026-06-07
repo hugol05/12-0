@@ -13,6 +13,25 @@ export interface SimContext {
   franchises: SimFranchise[];
 }
 
+/**
+ * The deepest playoff stage the player reached in a season. Derived from the
+ * existing 4-round playoff simulation in career.ts (no new RNG) — additive and
+ * non-breaking alongside the boolean playoff flags.
+ *   missed      — did not make the playoffs
+ *   firstRound  — made the playoffs, lost in round 1
+ *   confSemis   — lost in the conference semifinals (round 2)
+ *   confFinals  — lost in the conference finals (round 3)
+ *   finals      — reached the Finals but lost
+ *   champion    — won the championship
+ */
+export type RoundReached =
+  | 'missed'
+  | 'firstRound'
+  | 'confSemis'
+  | 'confFinals'
+  | 'finals'
+  | 'champion';
+
 export interface SeasonStatLine {
   ppg: number;
   rpg: number;
@@ -34,6 +53,8 @@ export interface SeasonResult {
   madePlayoffs: boolean;
   madeFinals: boolean;
   wonChampionship: boolean;
+  /** deepest playoff stage reached this season (derived from the playoff sim). */
+  roundReached: RoundReached;
   injury?: 'minor' | 'major' | 'season-ending';
   stats: SeasonStatLine;
   awards: string[];

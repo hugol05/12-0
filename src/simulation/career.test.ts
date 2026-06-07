@@ -73,6 +73,27 @@ describe('simulateCareer determinism', () => {
       expect(runCareer(uniformRatings(99), s).career.championships).toBeLessThanOrEqual(12);
     }
   });
+
+  it('roundReached is consistent with the playoff flags every season', () => {
+    const STAGES = ['missed', 'firstRound', 'confSemis', 'confFinals', 'finals', 'champion'];
+    // sweep ratings/seeds so we exercise misses, early exits, Finals losses, and titles
+    for (const value of [80, 88, 95]) {
+      for (let s = 0; s < 40; s++) {
+        for (const season of runCareer(uniformRatings(value), s).seasons) {
+          expect(STAGES).toContain(season.roundReached);
+          // boolean flags and the stage must agree
+          expect(season.roundReached === 'missed').toBe(!season.madePlayoffs);
+          expect(season.roundReached === 'champion').toBe(season.wonChampionship);
+          if (season.roundReached === 'finals' || season.roundReached === 'champion') {
+            expect(season.madeFinals).toBe(true);
+          }
+          if (season.madeFinals && !season.wonChampionship) {
+            expect(season.roundReached).toBe('finals');
+          }
+        }
+      }
+    }
+  });
 });
 
 describe('simulateCareer difficulty balance', () => {
