@@ -9,6 +9,10 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    // Ensure a single React instance — framer-motion (first introduced in the v2
+    // motion pass) calls React hooks internally, and a duplicated copy triggers
+    // "Invalid hook call" in dev. Dedupe keeps one resolution for the whole app.
+    dedupe: ['react', 'react-dom'],
   },
   plugins: [
     react(),

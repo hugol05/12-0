@@ -1,0 +1,32 @@
+/* PlayerSilhouette — the animated centerpiece figure.
+   Sizes set the rendered width; the SVG keeps its 220:340 portrait aspect. */
+
+.silhouette {
+  display: inline-block;
+  line-height: 0;
+}
+
+.silhouette svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible; /* let zone glow spill past the viewBox edges */
+}
+
+.silhouette--sm {
+  width: 120px;
+}
+.silhouette--md {
+  width: 200px;
+}
+.silhouette--lg {
+  width: 300px;
+}
+
+/* Motion is gated in JS via useReducedMotion(); this is a belt-and-suspenders
+   guard for any UA that animates SVG transforms outside framer-motion's control. */
+@media (prefers-reduced-motion: reduce) {
+  .silhouette svg * {
+    animation: none !important;
+  }
+}
