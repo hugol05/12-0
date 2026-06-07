@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 interface RadarAxis {
   label: string;
   value: number; // 0-99
@@ -9,10 +11,12 @@ interface Props {
 }
 
 // Lightweight dependency-free SVG radar for the 8 OVR categories.
-export function RadarChart({ axes, size = 260 }: Props) {
+// Premium pass (WS4): gold gradient fill, vertex dots, per-axis value chips.
+export function RadarChart({ axes, size = 280 }: Props) {
+  const uid = useId().replace(/[:]/g, '');
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 34;
+  const r = size / 2 - 44;
   const n = axes.length;
 
   const point = (i: number, frac: number): [number, number] => {
@@ -21,38 +25,78 @@ export function RadarChart({ axes, size = 260 }: Props) {
   };
 
   const rings = [0.25, 0.5, 0.75, 1];
-  const valuePoly = axes.map((a, i) => point(i, Math.max(0.05, a.value / 99)).join(',')).join(' ');
+  const valuePts = axes.map((a, i) => point(i, Math.max(0.05, a.value / 99)));
+  const valuePoly = valuePts.map((p) => p.join(',')).join(' ');
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Attribute radar">
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      role="img"
+      aria-label="Attribute radar"
+      style={{ overflow: 'visible' }}
+    >
+      <defs>
+        <radialGradient id={`${uid}-fill`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="rgba(255,215,0,0.42)" />
+          <stop offset="100%" stopColor="rgba(212,168,83,0.14)" />
+        </radialGradient>
+      </defs>
+
+      {/* grid rings */}
       {rings.map((ring) => (
         <polygon
           key={ring}
           points={axes.map((_, i) => point(i, ring).join(',')).join(' ')}
           fill="none"
-          stroke="#23232f"
+          stroke="var(--border-subtle)"
           strokeWidth={1}
         />
       ))}
+      {/* spokes */}
       {axes.map((_, i) => {
         const [x, y] = point(i, 1);
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="#23232f" strokeWidth={1} />;
+        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="var(--border-subtle)" strokeWidth={1} />;
       })}
-      <polygon points={valuePoly} fill="rgba(212,168,83,0.25)" stroke="var(--gold-primary)" strokeWidth={2} />
+
+      {/* value polygon */}
+      <polygon points={valuePoly} fill={`url(#${uid}-fill)`} stroke="var(--gold-primary)" strokeWidth={2.5} strokeLinejoin="round" />
+      {/* vertex dots */}
+      {valuePts.map(([x, y], i) => (
+        <circle key={i} cx={x} cy={y} r={3} fill="var(--gold-glow)" />
+      ))}
+
+      {/* axis labels + values */}
       {axes.map((a, i) => {
-        const [x, y] = point(i, 1.16);
+        const [lx, ly] = point(i, 1.2);
+        const anchor = lx < cx - 1 ? 'end' : lx > cx + 1 ? 'start' : 'middle';
         return (
-          <text
-            key={a.label}
-            x={x}
-            y={y}
-            fontSize={10}
-            fill="#8a8a9a"
-            textAnchor="middle"
-            dominantBaseline="middle"
-          >
-            {a.label}
-          </text>
+          <g key={a.label}>
+            <text
+              x={lx}
+              y={ly - 5}
+              fontSize={10}
+              fontWeight={600}
+              fill="var(--text-secondary)"
+              textAnchor={anchor}
+              dominantBaseline="middle"
+            >
+              {a.label}
+            </text>
+            <text
+              x={lx}
+              y={ly + 7}
+              fontSize={11}
+              fontWeight={700}
+              fill="var(--gold-primary)"
+              textAnchor={anchor}
+              dominantBaseline="middle"
+              style={{ fontFamily: 'var(--font-mono)' }}
+            >
+              {a.value}
+            </text>
+          </g>
         );
       })}
     </svg>
