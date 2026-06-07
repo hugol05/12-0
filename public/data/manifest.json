@@ -1,10 +1,10 @@
 {
-  "dataVersion": "2026-06-06.1",
-  "generatedAt": "2026-06-06T21:43:16.279Z",
+  "dataVersion": "2026-06-07.1",
+  "generatedAt": "2026-06-07T14:48:15.388Z",
   "sourceSummary": "BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern (2018-2023). Ratings = era-aware percentile formulas + curated overrides.",
   "files": {
     "players.json": {
-      "hash": "4a1e2fd374f3aa6d",
+      "hash": "f59cc5e08669e7c4",
       "bytes": 1697099
     },
     "franchises.json": {
@@ -12,7 +12,7 @@
       "bytes": 4146
     },
     "roll-index.json": {
-      "hash": "3c9bbeece7c6d662",
+      "hash": "e570a521e451812b",
       "bytes": 46241
     }
   }

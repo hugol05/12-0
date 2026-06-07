@@ -37,6 +37,7 @@ interface SeasonRow {
   pos?: Pos;               // set on stat rows only
   ppg: number; rpg: number; apg: number; spg: number; bpg: number; topg: number;
   ts: number; astPct: number; rebPct: number; usg: number; orbPct: number; ftPct: number;
+  tpPct: number; tpar: number; efg: number; // 3P%, 3-point attempt rate (3PA/FGA), eFG%
 }
 
 interface Player {
@@ -142,6 +143,7 @@ async function main(): Promise<void> {
       spg: toNum(tot.STL) / g, bpg: toNum(tot.BLK) / g, topg: toNum(tot.TOV) / g,
       ts: pctToFrac(tot['TS%']), astPct: toNum(tot['AST%']), rebPct: toNum(tot['TRB%']),
       usg: toNum(tot['USG%']), orbPct: toNum(tot['ORB%']), ftPct: pctToFrac(tot['FT%']),
+      tpPct: pctToFrac(tot['3P%']), tpar: toNum(tot['3PAr']), efg: pctToFrac(tot['eFG%']),
     });
     // franchise tagging: per-team rows (skip TOT/defunct/unmapped)
     for (const r of rows) {
@@ -150,7 +152,7 @@ async function main(): Promise<void> {
       if (gg < MIN_SEASON_GAMES) continue;
       const fr = codeToFranchise.get(r.Tm);
       if (!fr || excluded.has(r.Tm)) continue;
-      p.seasons.push({ year: y, team: fr, g: gg, minutes: 0, ppg: 0, rpg: 0, apg: 0, spg: 0, bpg: 0, topg: 0, ts: 0, astPct: 0, rebPct: 0, usg: 0, orbPct: 0, ftPct: 0 });
+      p.seasons.push({ year: y, team: fr, g: gg, minutes: 0, ppg: 0, rpg: 0, apg: 0, spg: 0, bpg: 0, topg: 0, ts: 0, astPct: 0, rebPct: 0, usg: 0, orbPct: 0, ftPct: 0, tpPct: 0, tpar: 0, efg: 0 });
     }
     void k;
   }
@@ -172,15 +174,18 @@ async function main(): Promise<void> {
     const a = advByKey.get(`${r.PLAYER_ID}|${r.SEASON}`);
     const ppg = toNum(r.PTS);
     const ts = a ? pctToFrac(a.TS_PCT) : tsFromBox(ppg, toNum(r.FGA), toNum(r.FTA));
+    const fga = toNum(r.FGA);
+    const efg = a ? pctToFrac(a.EFG_PCT) : (fga > 0 ? (toNum(r.FGM) + 0.5 * toNum(r.FG3M)) / fga : 0);
     p.seasons.push({
       year, team: 'MODERN', g, minutes: toNum(r.MIN) * g, pos: p.pos,
       ppg, rpg: toNum(r.REB), apg: toNum(r.AST), spg: toNum(r.STL), bpg: toNum(r.BLK), topg: toNum(r.TOV),
       ts, astPct: a ? pctToFrac(a.AST_PCT) * 100 : 0, rebPct: a ? pctToFrac(a.REB_PCT) * 100 : 0,
       usg: a ? pctToFrac(a.USG_PCT) * 100 : 0, orbPct: a ? pctToFrac(a.OREB_PCT) * 100 : 0, ftPct: pctToFrac(r.FT_PCT),
+      tpPct: pctToFrac(r.FG3_PCT), tpar: fga > 0 ? toNum(r.FG3A) / fga : 0, efg,
     });
     const fr = codeToFranchise.get(r.TEAM_ABBREVIATION);
     if (fr && g >= MIN_SEASON_GAMES) {
-      p.seasons.push({ year, team: fr, g, minutes: 0, ppg: 0, rpg: 0, apg: 0, spg: 0, bpg: 0, topg: 0, ts: 0, astPct: 0, rebPct: 0, usg: 0, orbPct: 0, ftPct: 0 });
+      p.seasons.push({ year, team: fr, g, minutes: 0, ppg: 0, rpg: 0, apg: 0, spg: 0, bpg: 0, topg: 0, ts: 0, astPct: 0, rebPct: 0, usg: 0, orbPct: 0, ftPct: 0, tpPct: 0, tpar: 0, efg: 0 });
     }
   }
 
@@ -211,6 +216,7 @@ async function main(): Promise<void> {
       ppg: w((s) => s.ppg), rpg: w((s) => s.rpg), apg: w((s) => s.apg), spg: w((s) => s.spg),
       bpg: w((s) => s.bpg), topg: w((s) => s.topg), ts: w((s) => s.ts), astPct: w((s) => s.astPct),
       rebPct: w((s) => s.rebPct), usg: w((s) => s.usg), orbPct: w((s) => s.orbPct), ftPct: w((s) => s.ftPct),
+      tpPct: w((s) => s.tpPct), tpar: w((s) => s.tpar), efg: w((s) => s.efg),
     };
     rep.stlBlk = rep.spg + rep.bpg;
     rep.astTov = rep.topg > 0 ? rep.apg / rep.topg : rep.apg;
@@ -234,7 +240,7 @@ async function main(): Promise<void> {
   }
 
   // ---- per-era percentile rankers ----
-  const metrics = ['ppg', 'rpg', 'apg', 'ts', 'astPct', 'rebPct', 'usg', 'stlBlk', 'orbPct', 'astTov', 'ftPct'] as const;
+  const metrics = ['ppg', 'rpg', 'apg', 'ts', 'astPct', 'rebPct', 'usg', 'stlBlk', 'orbPct', 'astTov', 'ftPct', 'tpPct', 'tpar', 'efg', 'spg', 'bpg'] as const;
   const byEra = new Map<string, Agg[]>();
   for (const a of aggs) (byEra.get(a.era) ?? byEra.set(a.era, []).get(a.era)!).push(a);
   const rankers = new Map<string, Record<string, (v: number) => number>>();
@@ -257,18 +263,30 @@ async function main(): Promise<void> {
     const hasStlBlk = a.primaryYear >= 1974;
     const modern = a.primaryYear >= 1996;
 
-    const shooting = rate(0.55 * rk.ppg(a.rep.ppg) + 0.45 * rk.ts(a.rep.ts));
+    // Shooting = shooting TOUCH/efficiency, not scoring volume. 1980+ blends FT% (best cross-era
+    // touch proxy) + 3P% (range efficiency) + 3PAr (range willingness/volume) + eFG%/TS% (overall
+    // efficiency). PPG is demoted to zero so high-volume non-shooters (Shaq, prime Giannis) fall.
+    // Pre-1980 has no 3PT columns, so fall back to FT% + TS% + a small era-relative scoring rank.
+    const shooting = has3pt
+      ? rate(0.30 * rk.ftPct(a.rep.ftPct) + 0.25 * rk.tpPct(a.rep.tpPct) + 0.18 * rk.tpar(a.rep.tpar)
+           + 0.17 * rk.efg(a.rep.efg) + 0.10 * rk.ts(a.rep.ts))
+      : rate(0.45 * rk.ftPct(a.rep.ftPct) + 0.35 * rk.ts(a.rep.ts) + 0.20 * rk.ppg(a.rep.ppg));
     const playmaking = rate(0.65 * rk.apg(a.rep.apg) + 0.35 * rk.astPct(a.rep.astPct));
     const rebounding = rate(0.6 * rk.rpg(a.rep.rpg) + 0.4 * rk.rebPct(a.rep.rebPct));
     const defense = hasStlBlk
       ? rate(0.7 * rk.stlBlk(a.rep.stlBlk) + 0.3 * rk.rebPct(a.rep.rebPct))
       : rate(0.55 * rk.rebPct(a.rep.rebPct) + 0.45 * 0.5);
+    // Athleticism: box stats are a weak proxy. Steals (perimeter quickness) + ORB% (leaping/motor)
+    // lead; blocks are demoted (0.20) so plodding rim-protectors stop topping the scale. Famous
+    // athletic reputations are finalised via curated overrides (de-rating plodders, boosting flyers).
     const athleticism = hasStlBlk
-      ? rate(0.6 * rk.stlBlk(a.rep.stlBlk) + 0.4 * rk.orbPct(a.rep.orbPct))
+      ? rate(0.45 * rk.spg(a.rep.spg) + 0.35 * rk.orbPct(a.rep.orbPct) + 0.20 * rk.bpg(a.rep.bpg))
       : rate(0.5 * rk.rpg(a.rep.rpg) + 0.5 * rk.ppg(a.rep.ppg));
     const basketballIq = rate(0.5 * rk.astTov(a.rep.astTov) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.ftPct(a.rep.ftPct));
     const clutch = rate(0.5 * rk.ppg(a.rep.ppg) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.usg(a.rep.usg));
-    const height = clamp(Math.round(((a.p.heightIn - 69) / 18) * 60 + 35), 25, 99);
+    // Height: real listed inches where known; re-tuned linear map so 6'0" guards land ~57 and
+    // 7-footers ~89 (32 points per foot above 6'0"). Estimated heights stay flagged confidence:low.
+    const height = clamp(Math.round(((a.p.heightIn - 72) / 12) * 32 + 57), 25, 99);
     const durRaw = 0.6 * Math.min(a.seasonsPlayed / 18, 1) + 0.4 * Math.min(a.avgG / 75, 1);
     const durability = clamp(Math.round(35 + durRaw * 60), 25, 99);
 

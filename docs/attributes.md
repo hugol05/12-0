@@ -10,7 +10,7 @@
 
 | # | Category | Icon | What It Represents | Key Stats | Example Top Players |
 |---|----------|------|--------------------|-----------|---------------------|
-| 1 | **Shooting** | 🎯 | Scoring ability & efficiency | PPG + TS% | Curry, Jordan, Durant, Harden |
+| 1 | **Shooting** | 🎯 | Shooting touch & efficiency (not scoring volume) | FT% + 3P% + 3PAr + eFG%/TS% | Curry, Reggie Miller, Klay, Dirk, Ray Allen |
 | 2 | **Height & Wingspan** | 📏 | Physical frame & reach | Height + wingspan data | Yao Ming, Wembanyama, Giannis, Bol Bol |
 | 3 | **Playmaking** | 🏀 | Court vision & passing | APG + AST% | Magic, Stockton, CP3, Nash |
 | 4 | **Defense** | 🛡️ | Rim protection & perimeter D | BPG + SPG + DBPM | Russell, Hakeem, Kawhi, Pippen |

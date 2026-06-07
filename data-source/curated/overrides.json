@@ -1,5 +1,104 @@
 {
-  "$comment": "Hand-tuned subjective rating overrides, layered after the era-aware formula. Key by player id. Each entry: { ratings?: partial, rationale: string }. Start empty; add only well-justified legends.",
-  "version": 1,
-  "overrides": {}
+  "$comment": "Hand-tuned subjective rating overrides, layered after the era-aware formula (see scripts/data/build.ts). Key by player id (NBA PERSON_ID for 1996+, else h<hash>). Each entry: { ratings: partial, rationale: string }. Rules (docs/data-strategy.md §Curated Overrides): every move >5 pts carries a reason; every rating >95 and every athleticism >90 carries an evidence note. Athleticism box-score proxy (steals+ORB+blocks) systematically underrates explosive open-court flyers and overrates ground-bound rim-protectors, so the batch below corrects the best-documented reputations.",
+  "version": 2,
+  "reviewedBy": "WS1-data-curation",
+  "reviewedAt": "2026-06-07",
+  "overrides": {
+    "2544": {
+      "ratings": { "athleticism": 96 },
+      "rationale": "Athleticism 80->96. Reason: box-score steals/ORB underrate transition speed + chase-down/recovery explosiveness. Evidence (>90): consensus generational open-court athlete (6-9, 250 lbs sprinting coast-to-coast), iconic chase-down blocks, prime above-the-rim finishing."
+    },
+    "1713": {
+      "ratings": { "athleticism": 96 },
+      "rationale": "Athleticism 78->96. Reason: a wing's vertical/hang-time is invisible in steals+ORB+blocks. Evidence (>90): 'Half Man Half Amazing', 2000 Slam Dunk Contest winner, widely cited as one of the greatest in-game leapers ever."
+    },
+    "893": {
+      "ratings": { "athleticism": 95 },
+      "rationale": "Athleticism 80->95. Reason: vertical/hang-time not captured by box proxy. Evidence (>90): 1987-88 Slam Dunk champion, iconic free-throw-line dunk and hang time; era-defining explosiveness."
+    },
+    "76681": {
+      "ratings": { "athleticism": 95 },
+      "rationale": "Athleticism 91->95. Reason: pre-1974 lacks steals/blocks entirely so the proxy is era-crippled. Evidence (>90): 'Dr. J', the defining aerial artist who popularised above-the-rim play; legendary free-throw-line dunk."
+    },
+    "201566": {
+      "ratings": { "athleticism": 94 },
+      "rationale": "Athleticism 82->94. Reason: end-to-end burst and vertical exceed what steals/ORB show. Evidence (>90): elite first step and open-court speed; routine highlight-reel transition dunks; triple-double production driven by athletic rebounding from the guard spot."
+    },
+    "1629627": {
+      "ratings": { "athleticism": 94 },
+      "rationale": "Athleticism 84->94. Reason: explosive leaping at 285 lbs invisible to box proxy. Evidence (>90): reported ~45-inch max vertical at his pre-draft testing weight; one of the most explosive leapers for his size in league history."
+    },
+    "203507": {
+      "ratings": { "athleticism": 93 },
+      "rationale": "Athleticism 85->93. Reason: stride-length/coast-to-coast speed not captured by steals+ORB+blocks. Evidence (>90): 'Greek Freak', euro-step from the free-throw line, freight-train transition athlete at 7-0."
+    },
+    "1629630": {
+      "ratings": { "athleticism": 93 },
+      "rationale": "Athleticism 73->93. Reason: a 6-2 guard's vertical is invisible in the box proxy. Evidence (>90): elite measured vertical; viral above-the-rim dunks over bigs; consensus most explosive leaper among modern guards."
+    },
+    "1122": {
+      "ratings": { "athleticism": 93 },
+      "rationale": "Athleticism 84->93. Reason: leaping/hang-time not captured by box proxy. Evidence (>90): 'The Human Highlight Film', two-time Slam Dunk Contest champion."
+    },
+    "431": {
+      "ratings": { "athleticism": 92 },
+      "rationale": "Athleticism 90->92. Reason: confirm a documented elite leaper sits clearly above the 90 line. Evidence (>90): 'Reignman', one of the most explosive in-game dunkers of the 1990s."
+    },
+    "201933": {
+      "ratings": { "athleticism": 92 },
+      "rationale": "Athleticism 80->92. Reason: dunk explosiveness invisible to steals/ORB. Evidence (>90): 2011 Slam Dunk Contest champion; premier above-the-rim power finisher of his era."
+    },
+    "17": {
+      "ratings": { "athleticism": 92 },
+      "rationale": "Athleticism 84->92. Reason: leaping/glide not in box proxy. Evidence (>90): 'The Glide', renowned open-court leaper and finisher, dunk-contest staple."
+    },
+    "201565": {
+      "ratings": { "athleticism": 92 },
+      "rationale": "Athleticism 70->92 (pre-injury reputation). Reason: explosive first step/vertical collapsed by box proxy and shortened by injuries. Evidence (>90): youngest MVP (2010-11) on elite burst and vertical attacking the rim."
+    },
+    "1503": {
+      "ratings": { "athleticism": 90 },
+      "rationale": "Athleticism 81->90. Reason: fluid length/leaping understated by steals+ORB. Evidence (>90): renowned self-alley-oop and effortless above-the-rim scoring at 6-8."
+    },
+    "2548": {
+      "ratings": { "athleticism": 90 },
+      "rationale": "Athleticism 82->90. Reason: explosive drive/leaping not captured by box proxy. Evidence (>90): elite first step and vertical; signature chase-down blocks and rim attacks."
+    },
+    "1630162": {
+      "ratings": { "athleticism": 91 },
+      "rationale": "Athleticism 77->91. Reason: a guard/wing's vertical is invisible to the box proxy. Evidence (>90): elite measured vertical; routine poster dunks over bigs."
+    },
+    "2730": {
+      "ratings": { "athleticism": 92 },
+      "rationale": "Athleticism 88->92. Reason: leaping at 265 lbs underweighted. Evidence (>90): 2008 Slam Dunk Contest champion ('Superman'); one of the most explosive centers ever."
+    },
+    "977": {
+      "ratings": { "athleticism": 89 },
+      "rationale": "Athleticism 78->89. Reason: prime explosiveness/leaping understated by the box proxy; kept below 90 as athleticism was elite-but-not-defining relative to his skill."
+    },
+    "203497": {
+      "ratings": { "athleticism": 70 },
+      "rationale": "Athleticism 84->70. Reason: steals+ORB+blocks reward elite rim-protection volume, but lateral quickness and explosiveness are average for an athlete grade; reputation is length/timing, not athleticism."
+    },
+    "201188": {
+      "ratings": { "athleticism": 58 },
+      "rationale": "Athleticism 83->58. Reason: block volume inflates the proxy; widely regarded as a slow-footed, ground-bound center whose value is skill/IQ, not athleticism."
+    },
+    "201572": {
+      "ratings": { "athleticism": 60 },
+      "rationale": "Athleticism 77->60. Reason: shot-blocking inflates the proxy; ground-bound, slow-footed center reputation."
+    },
+    "76631": {
+      "ratings": { "athleticism": 48 },
+      "rationale": "Athleticism 69->48. Reason: record-setting block totals inflate the box proxy; famously immobile, station-to-station big man with minimal lateral/vertical athleticism."
+    },
+    "201939": {
+      "ratings": { "shooting": 97 },
+      "rationale": "Shooting 93->97. Reason: formula's percentile ceiling compresses the all-time apex. Evidence (>95): consensus greatest shooter in NBA history, all-time three-point makes leader with elite volume and efficiency."
+    },
+    "202691": {
+      "ratings": { "shooting": 93 },
+      "rationale": "Shooting 89->93. Reason: career-shortening injuries pulled minutes-weighted FT%/volume down; reputation is a top-tier catch-and-shoot marksman ('Splash Brother')."
+    }
+  }
 }

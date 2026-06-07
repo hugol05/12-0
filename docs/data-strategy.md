@@ -164,17 +164,19 @@ Every normalized row must include:
 
 Generate a first-pass rating for all 9 categories using deterministic formulas. Ratings must be reproducible from normalized inputs and a versioned formula file.
 
-| Rating | Formula source | Override allowed? | Confidence rule |
+Each metric is percentile-ranked **within the player's peak decade** (so a 1960s player isn't punished for absent 3PT/STL/BLK columns), then mapped to 0-99 via `rate(p) = clamp(round(38 + p·57), 25, 99)`. Curated overrides are layered last and may exceed that band for documented apex cases.
+
+| Rating | Formula source (as implemented in `scripts/data/build.ts`) | Override allowed? | Confidence rule |
 |--------|----------------|-------------------|-----------------|
-| Shooting | Era-relative PPG, TS%, FG%, FT%, 3P data where available | Yes | Lower confidence before 1979-80 if range evidence is missing. |
-| Height/Wingspan | Listed height, wingspan where available, positional size | Yes | High for height, variable for wingspan. |
-| Playmaking | APG, assist share/proxies, turnover context where available | Yes | Lower before turnover data starts in 1977-78. |
-| Defense | Steals, blocks, defensive advanced stats, All-Defense/DPOY, curated era notes | Yes | Lower before steals/blocks start in 1973-74. |
-| Rebounding | RPG, total rebound share, offensive/defensive split where available | Yes | Lower before rebound data starts in 1950-51 and before split rebounds in 1973-74. |
-| Athleticism | Combine/tracking where available, era reputation, play-style evidence | Required for many players | Must include evidence notes for ratings above 90. |
-| Basketball IQ | BPM/VORP/WS where available, assist/turnover profile, awards, role | Yes | Lower before advanced stats coverage. |
-| Clutch | Playoff and Finals production, elimination-game indicators, Finals record, curated evidence | Required for extremes | Ratings below 65 or above 94 require evidence notes. |
-| Durability | Games played percentage, seasons, minutes load, late-career value | Yes | High when games/seasons are complete. |
+| Shooting | **Shooting touch/efficiency, not scoring volume.** 1980+: `0.30·FT%-rank + 0.25·3P%-rank + 0.18·3PAr-rank + 0.17·eFG%-rank + 0.10·TS%-rank` (PPG demoted to **zero**). Pre-1980 (no 3PT columns): `0.45·FT%-rank + 0.35·TS%-rank + 0.20·PPG-rank`. FT% is the best cross-era touch proxy. | Yes | Lower (`medium`) before 1979-80 where range evidence is missing. |
+| Height/Wingspan | Real listed height (inches) where known; else position-estimated. Map: `clamp(round((inches−72)/12·32 + 57), 25, 99)` → 6'0"≈57, 7'0"≈89. | Yes | High for real height; `low` when estimated (no measured wingspan). |
+| Playmaking | `0.65·APG-rank + 0.35·AST%-rank` | Yes | Lower before turnover data starts in 1977-78. |
+| Defense | 1974+: `0.7·(STL+BLK)-rank + 0.3·TRB%-rank`. Pre-1974: `0.55·TRB%-rank + neutral` (no steals/blocks). | Yes | Lower before steals/blocks start in 1973-74. |
+| Rebounding | `0.6·RPG-rank + 0.4·TRB%-rank` | Yes | Lower before rebound data starts in 1950-51 and before split rebounds in 1973-74. |
+| Athleticism | **Box stats are a weak proxy.** 1974+: `0.45·STL-rank + 0.35·ORB%-rank + 0.20·BLK-rank` (blocks demoted so plodding rim-protectors stop topping the scale). Pre-1974: `0.5·RPG + 0.5·PPG`. Famous reputations are finalised via curated overrides (boost flyers, de-rate plodders). | Required for many players | Must include evidence notes for ratings above 90. |
+| Basketball IQ | `0.5·(AST/TOV)-rank + 0.3·TS%-rank + 0.2·FT%-rank` | Yes | Lower before advanced stats coverage. |
+| Clutch | `0.5·PPG-rank + 0.3·TS%-rank + 0.2·USG%-rank` (baseline; curated `clutch` overrides for legends/extremes) | Required for extremes | Ratings below 65 or above 94 require evidence notes. |
+| Durability | `35 + (0.6·min(seasons/18,1) + 0.4·min(avgG/75,1))·60` | Yes | High when games/seasons are complete. |
 
 ### 5. Curated Overrides
 
