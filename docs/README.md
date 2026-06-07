@@ -144,5 +144,7 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Tech Stack & Architecture](tech-stack.md) | Frontend stack, PWA setup, repository structure, deployment |
 | [Social Features & Roadmap](roadmap.md) | Daily Challenge, leaderboard, scope/phasing, implementation order |
 | [Pre-Mortem](pre-mortem.md) | Product risks, balancing concerns, and upgrade ideas |
+| [Build Status](BUILD_STATUS.md) | What is implemented and verified right now, per phase, with evidence |
+| [Next Upgrades](next-upgrades.md) | Engineering upgrade backlog (post-v1.0 core), tiered by leverage |
 
-**Build sequence:** [MASTER_PLAN.md](MASTER_PLAN.md) is the single source of truth for *how* we build — phased, task-by-task, data-pipeline-first. The topic docs above are living specs (kept up to date); the master plan turns them into ordered build tasks.
+**Build sequence:** [MASTER_PLAN.md](MASTER_PLAN.md) is the single source of truth for *how* we build — phased, task-by-task, data-pipeline-first. The topic docs above are living specs (kept up to date); the master plan turns them into ordered build tasks. [BUILD_STATUS.md](BUILD_STATUS.md) tracks *what's done*; [next-upgrades.md](next-upgrades.md) tracks *what's next*.
