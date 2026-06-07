@@ -1,0 +1,16 @@
+Self-hosted webfonts for 12-0. All free for commercial use.
+
+Clash Display (ClashDisplay-Variable.woff2)
+  Foundry: Indian Type Foundry / Fontshare
+  License: Fontshare free font license (free for personal & commercial use)
+  Source: https://www.fontshare.com/fonts/clash-display
+
+Satoshi (Satoshi-Variable.woff2)
+  Foundry: Indian Type Foundry / Fontshare
+  License: Fontshare free font license (free for personal & commercial use)
+  Source: https://www.fontshare.com/fonts/satoshi
+
+JetBrains Mono (JetBrainsMono-Regular/Medium/Bold.woff2)
+  Foundry: JetBrains
+  License: SIL Open Font License 1.1
+  Source: https://github.com/JetBrains/JetBrainsMono

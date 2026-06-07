@@ -1,0 +1,52 @@
+/* Self-hosted webfonts for 12-0 — see public/fonts/LICENSE.txt for sources/licenses.
+   Imported once from main.tsx (before global.css). The token references in
+   tokens.css (--font-display / --font-body / --font-mono) resolve to these.
+
+   Clash Display + Satoshi ship as variable fonts (one file, full weight range);
+   JetBrains Mono ships as three static weights. font-display: swap keeps the
+   first paint instant with the system fallback, then swaps in the real face. */
+
+/* Display — Clash Display (variable, 200–700). Headlines, OVR, broadcast feel. */
+@font-face {
+  font-family: 'Clash Display';
+  src: url('/fonts/ClashDisplay-Variable.woff2') format('woff2-variations'),
+    url('/fonts/ClashDisplay-Variable.woff2') format('woff2');
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Body / UI — Satoshi (variable, 300–900). */
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Variable.woff2') format('woff2-variations'),
+    url('/fonts/Satoshi-Variable.woff2') format('woff2');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Stats / numerics — JetBrains Mono (static weights). */
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

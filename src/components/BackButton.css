@@ -1,0 +1,61 @@
+/* BackButton — ghost icon control with gold hover + visible focus ring (WS2).
+   Keeps a ≥44px tap target at every size for mobile accessibility. */
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-instant) var(--ease-out);
+}
+
+.back-button--labeled {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+}
+
+.back-button__label {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.back-button:hover {
+  color: var(--gold-primary);
+  border-color: var(--gold-soft);
+  background: var(--bg-raised);
+}
+
+.back-button:active {
+  transform: scale(0.94);
+}
+
+.back-button:focus-visible {
+  outline: 2px solid var(--gold-glow);
+  outline-offset: 2px;
+}
+
+.back-button--sm {
+  min-width: 44px; /* tap target stays 44px even when visually smaller */
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .back-button {
+    transition: color var(--dur-fast) linear;
+  }
+  .back-button:active {
+    transform: none;
+  }
+}

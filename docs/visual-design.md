@@ -14,29 +14,71 @@ Think: the premium feel of an NBA Finals broadcast overlay, combined with the sl
 
 ## Color Palette
 
+> Defined in [src/styles/tokens.css](../src/styles/tokens.css) (WS2 owns it). Compose these tokens
+> rather than hard-coding hex so the whole app restyles from one place.
+
+**Surfaces & borders**
+
 | Token | Color | Usage |
 |-------|-------|-------|
 | `--bg-void` | `#000000` | True black background (OLED-friendly) |
 | `--bg-surface` | `#0A0A0F` | Card/panel backgrounds |
 | `--bg-elevated` | `#14141F` | Elevated surfaces, modals |
-| `--gold-primary` | `#D4A853` | Championship gold — primary accent |
-| `--gold-glow` | `#FFD700` | Glow effects, active states |
+| `--bg-raised` | `#1D1D2B` | Highest layer — popovers, active cards |
+| `--border-subtle` | `rgba(255,255,255,.07)` | Hairline borders on the void |
+| `--border-strong` | `rgba(255,255,255,.14)` | Stronger separators / badge outline |
+
+**Accents**
+
+| Token | Color | Usage |
+|-------|-------|-------|
+| `--gold-primary` | `#D4A853` | Championship gold — primary accent / fills |
+| `--gold-glow` | `#FFD700` | Glow effects, active states, halo |
+| `--gold-deep` | `#9A7635` | Gradient shadow side of the gold ramp |
+| `--gold-soft` | `rgba(212,168,83,.16)` | Translucent gold borders / tints |
+| `--accent-electric` | `#4F9CF9` | Secondary "arena blue" — info, non-championship emphasis |
+| `--accent-electric-soft` | `rgba(79,156,249,.16)` | Translucent blue fills |
 | `--silver` | `#C0C0C8` | Secondary text, borders |
 | `--court-wood` | `#C4883A` | Court floor texture accents |
+
+**Text & state**
+
+| Token | Color | Usage |
+|-------|-------|-------|
 | `--text-primary` | `#FFFFFF` | Headlines |
 | `--text-secondary` | `#8A8A9A` | Body text, labels |
+| `--text-tertiary` | `#5A5A68` | Faint captions, disabled labels |
 | `--success` | `#4ADE80` | Win indicators, positive stats |
 | `--danger` | `#EF4444` | Loss indicators, negative events |
+| `--win-tint` / `--loss-tint` | `rgba(74,222,128,.12)` / `rgba(239,68,68,.10)` | Win/loss card fills |
+| `--win-border` / `--loss-border` | `rgba(74,222,128,.45)` / `rgba(239,68,68,.40)` | Win/loss card outlines |
+
+**Gradients** — `--gradient-surface` (card depth), `--gradient-gold` (championship fills/text),
+`--gradient-court` (subtle floor wash), `--gradient-spotlight` (top-down gold spotlight).
+
+**Team identity** — official franchise colors live in [src/theme/teamColors.ts](../src/theme/teamColors.ts)
+(30 franchises → `{ primary, secondary, text }`, keyed by franchise `id`). Rendered via the
+[`TeamBadge`](../src/components/TeamBadge.tsx) primitive (colors + abbreviation only — **no logos**, trademark-safe).
 
 ---
 
 ## Typography
 
+Self-hosted in [src/styles/fonts.css](../src/styles/fonts.css) (`@font-face`, `font-display: swap`),
+imported once from `main.tsx`. Clash Display + Satoshi ship as **variable** fonts (one file each, full
+weight range); JetBrains Mono ships as three static weights (400/500/700). Files in `public/fonts/`.
+
 | Role | Font | Style |
 |------|------|-------|
-| Display / Headlines | **Clash Display** | Bold, uppercase — dramatic, sports-broadcast feel |
-| Body / UI | **Satoshi** | Clean, modern, excellent readability on mobile |
-| Monospace / Stats | **JetBrains Mono** | For stats, ratings, numerical data |
+| Display / Headlines | **Clash Display** (var, 200–700) | Bold, uppercase — dramatic, sports-broadcast feel |
+| Body / UI | **Satoshi** (var, 300–900) | Clean, modern, excellent readability on mobile |
+| Monospace / Stats | **JetBrains Mono** (400/500/700) | For stats, ratings, numerical data |
+
+**Type scale** (tokens): `--text-xs` 12 · `--text-sm` 14 · `--text-base` 16 · `--text-lg` 18 ·
+`--text-xl` 22 · `--text-2xl` 28 · `--text-3xl` 36 · `--text-4xl` 48 · `--text-hero` `clamp(3.5rem,18vw,7rem)`.
+**Weights:** `--weight-regular/medium/semibold/bold` (400/500/600/700).
+**Tracking:** `--tracking-display` (-.01em), `--tracking-tight` (-.02em), `--tracking-wide` (.05em),
+`--tracking-eyebrow` (.18em, uppercase kickers).
 
 ---
 
@@ -64,6 +106,20 @@ Think: the premium feel of an NBA Finals broadcast overlay, combined with the sl
 | **Finals loss** | Subtle screen shake, muted colors |
 | **Career decline** | Slight desaturation of player card as seasons progress |
 | **Share card** | Premium card-flip reveal animation |
+
+### Motion tokens & primitives
+
+Durations/easings are tokens in [tokens.css](../src/styles/tokens.css); the matching Framer Motion
+variants live in [src/lib/motion.ts](../src/lib/motion.ts) (mirrored JS `DURATION` / `EASE` constants).
+Screen workstreams import these so motion stays consistent.
+
+- **Durations:** `--dur-instant` .12s · `--dur-fast` .2s · `--dur-base` .35s · `--dur-slow` .6s · `--dur-roll` 1.6s (slot spin).
+- **Easings:** `--ease-out` (standard decel) · `--ease-in-out` · `--ease-spring` (overshoot/pop) · `--ease-slot` (hard slot-stop decel).
+- **Variants exported:** `pageVariants` + `pageTransition` (route transitions), `cardReveal` + `staggerContainer` (list reveals), `slotTransition` (roll), `goldBurst` (championship), `fadeIn`.
+- **Reduced motion is mandatory.** Each factory takes a `reduced` flag (collapses to a plain fade); pass Framer's `useReducedMotion()` or `prefersReducedMotion()`. CSS animations gate on `@media (prefers-reduced-motion: reduce)`.
+
+Shared interactive primitives also include [`BackButton`](../src/components/BackButton.tsx) (accessible
+back/home control, ≥44px tap target, gold hover, visible focus ring).
 
 ---
 

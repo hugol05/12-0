@@ -1,26 +1,95 @@
 /* 12-0 design tokens — Dark OLED Luxury × NBA Broadcast.
-   See docs/visual-design.md. */
+   See docs/visual-design.md for the palette/type/motion reference.
+
+   Sections:
+     1. Color — surfaces, gold ramp, secondary accent, win/loss, gradients
+     2. Typography — families, modular type scale, weights, tracking
+     3. Spacing / radii / elevation
+     4. Motion — durations + easings (consumed by src/lib/motion.ts)
+     5. Safe-area insets
+
+   WS2 owns this file. Per-screen colors/sizes should compose these tokens
+   rather than hard-coding hex/px, so the whole app restyles from one place. */
 
 :root {
-  /* Color palette */
+  /* ── 1. Color ─────────────────────────────────────────────── */
+
+  /* Surfaces (true-black OLED base, layered upward) */
   --bg-void: #000000;
   --bg-surface: #0a0a0f;
   --bg-elevated: #14141f;
+  --bg-raised: #1d1d2b; /* highest layer — popovers, active cards */
+
+  /* Hairline borders for layering on the void */
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Gold ramp — championship accent. primary = fills, glow = active/halo,
+     deep = gradient shadow side, soft = translucent borders/tints. */
   --gold-primary: #d4a853;
   --gold-glow: #ffd700;
+  --gold-deep: #9a7635;
+  --gold-soft: rgba(212, 168, 83, 0.16);
+
+  /* Secondary accent — cool "arena" blue. Used for info, interactive
+     highlights, and non-championship emphasis so gold stays special. */
+  --accent-electric: #4f9cf9;
+  --accent-electric-soft: rgba(79, 156, 249, 0.16);
+
   --silver: #c0c0c8;
   --court-wood: #c4883a;
+
+  /* Text */
   --text-primary: #ffffff;
   --text-secondary: #8a8a9a;
+  --text-tertiary: #5a5a68; /* faint captions, disabled labels */
+
+  /* Win / loss — solid for icons/text, *-tint for fills, *-border for outlines */
   --success: #4ade80;
   --danger: #ef4444;
+  --win-tint: rgba(74, 222, 128, 0.12);
+  --loss-tint: rgba(239, 68, 68, 0.1);
+  --win-border: rgba(74, 222, 128, 0.45);
+  --loss-border: rgba(239, 68, 68, 0.4);
 
-  /* Typography — fonts loaded in fonts.css; system fallbacks until then. */
+  /* Gradients — premium surface depth + gold/championship moments */
+  --gradient-surface: linear-gradient(160deg, #14141f 0%, #0a0a0f 100%);
+  --gradient-gold: linear-gradient(135deg, #ffd700 0%, #d4a853 45%, #9a7635 100%);
+  --gradient-court: radial-gradient(120% 80% at 50% 0%, rgba(196, 136, 58, 0.12) 0%, transparent 60%);
+  --gradient-spotlight: radial-gradient(80% 60% at 50% -10%, rgba(212, 168, 83, 0.18) 0%, transparent 70%);
+
+  /* ── 2. Typography ────────────────────────────────────────── */
+
+  /* Families — actual faces loaded in fonts.css; system fallbacks until swap. */
   --font-display: 'Clash Display', 'Arial Narrow', system-ui, sans-serif;
   --font-body: 'Satoshi', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', monospace;
 
-  /* Spacing scale */
+  /* Modular type scale (~1.25 ratio). Hero uses a fluid clamp. */
+  --text-xs: 0.75rem; /* 12px — captions, meta */
+  --text-sm: 0.875rem; /* 14px — secondary UI */
+  --text-base: 1rem; /* 16px — body */
+  --text-lg: 1.125rem; /* 18px — emphasised body, CTA */
+  --text-xl: 1.375rem; /* 22px — card titles */
+  --text-2xl: 1.75rem; /* 28px — section headings */
+  --text-3xl: 2.25rem; /* 36px — screen titles */
+  --text-4xl: 3rem; /* 48px — big numbers (OVR) */
+  --text-hero: clamp(3.5rem, 18vw, 7rem); /* 12-0 logo / record */
+
+  /* Weights — variable fonts cover the full range. */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Letter-spacing — display is tightened, eyebrow/labels are tracked out. */
+  --tracking-display: -0.01em;
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.05em;
+  --tracking-eyebrow: 0.18em; /* uppercase labels / kickers */
+
+  /* ── 3. Spacing / radii / elevation ───────────────────────── */
+
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -29,17 +98,31 @@
   --space-8: 2rem;
   --space-12: 3rem;
 
-  /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
   --radius-full: 999px;
 
-  /* Elevation */
   --shadow-gold: 0 0 24px rgba(212, 168, 83, 0.35);
+  --shadow-gold-strong: 0 0 40px rgba(255, 215, 0, 0.45);
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.7);
 
-  /* Safe-area insets (iOS notch / home indicator) */
+  /* ── 4. Motion ────────────────────────────────────────────── */
+  /* Durations — paired with easings in src/lib/motion.ts. */
+  --dur-instant: 0.12s;
+  --dur-fast: 0.2s;
+  --dur-base: 0.35s;
+  --dur-slow: 0.6s;
+  --dur-roll: 1.6s; /* slot-machine spin */
+
+  /* Easings */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* standard decel — UI reveals */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot/pop */
+  --ease-slot: cubic-bezier(0.16, 1, 0.16, 1); /* hard decel — slot stop */
+
+  /* ── 5. Safe-area insets (iOS notch / home indicator) ─────── */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
