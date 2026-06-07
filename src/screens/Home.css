@@ -1,44 +1,131 @@
 .home {
+  position: relative;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
-  padding: var(--space-8) var(--space-6);
+  /* `safe` keeps content visible (aligns to start) instead of clipping when the
+     stack is taller than the viewport on short screens. */
+  justify-content: safe center;
+  padding: clamp(1.5rem, 5vh, 3rem) var(--space-6);
   text-align: center;
+  overflow: hidden;
   background:
-    radial-gradient(ellipse at 50% 30%, rgba(212, 168, 83, 0.08), transparent 60%),
+    var(--gradient-spotlight),
+    radial-gradient(ellipse at 50% 120%, rgba(196, 136, 58, 0.08), transparent 55%),
     var(--bg-void);
 }
 
-.home__hero {
+/* ── Floating gold particles ──────────────────────────────────── */
+.home__particles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.home__particle {
+  position: absolute;
+  bottom: -12px;
+  width: var(--p-size);
+  height: var(--p-size);
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--gold-glow), var(--gold-primary) 70%, transparent);
+  box-shadow: 0 0 6px var(--gold-soft);
+  opacity: 0;
+  animation: home-float var(--p-dur) linear var(--p-delay) infinite;
+}
+
+@keyframes home-float {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--p-opacity);
+  }
+  88% {
+    opacity: var(--p-opacity);
+  }
+  100% {
+    transform: translate3d(var(--p-drift), calc(-100dvh - 24px), 0);
+    opacity: 0;
+  }
+}
+
+/* ── Content stack ────────────────────────────────────────────── */
+.home__inner {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  align-items: center;
+  gap: clamp(0.75rem, 2.4vh, 1.5rem);
+  width: 100%;
+  max-width: 380px;
+}
+
+.home__eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold-primary);
 }
 
 .home__logo {
-  font-size: clamp(4rem, 22vw, 8rem);
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 19vw, 6.5rem);
+  font-weight: var(--weight-bold);
+  line-height: 0.9;
+  letter-spacing: var(--tracking-tight);
   color: var(--gold-primary);
-  text-shadow: var(--shadow-gold);
-  letter-spacing: -0.02em;
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 28px rgba(212, 168, 83, 0.35));
 }
 
 .home__tagline {
   color: var(--text-secondary);
-  font-size: 1rem;
-  letter-spacing: 0.04em;
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-wide);
 }
 
+.home__stage {
+  display: flex;
+  justify-content: center;
+  margin: clamp(-0.5rem, -1vh, 0rem) 0;
+}
+
+/* Override the silhouette's fixed size class with a fluid width that fits short
+   phones, and add a gentle "breathing" idle so the centerpiece feels alive. */
+.home .home__silhouette {
+  width: clamp(150px, 42vw, 248px);
+  transform-origin: center bottom;
+  animation: home-breathe 4.8s var(--ease-in-out) infinite;
+}
+
+@keyframes home-breathe {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.012);
+  }
+}
+
+/* ── Controls ─────────────────────────────────────────────────── */
 .home__controls {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
 }
 
 .home__difficulty {
@@ -47,29 +134,69 @@
   justify-content: center;
 }
 
-.home__teaser {
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  font-size: 0.8rem;
-  opacity: 0.55;
-  cursor: not-allowed;
-  border: 1px solid rgba(255, 255, 255, 0.04);
+.home__cta {
+  width: 100%;
 }
 
-.home__howto-toggle {
+.home__teaser {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: not-allowed;
+  border: 1px solid var(--border-subtle);
+}
+
+.home__teaser-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: var(--tracking-wide);
 }
 
 .home__howto {
-  max-width: 360px;
+  margin-top: var(--space-1);
+  align-self: center;
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--border-strong);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
-.home__howto strong {
-  color: var(--text-primary);
+.home__howto:hover {
+  color: var(--gold-primary);
+}
+
+.home__howto:focus-visible {
+  outline: 2px solid var(--gold-glow);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__particle {
+    animation: none;
+    opacity: calc(var(--p-opacity) * 0.5);
+  }
+  .home .home__silhouette {
+    animation: none;
+  }
+  .home__howto {
+    transition: none;
+  }
 }

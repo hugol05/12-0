@@ -1,7 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { Clock, Lock } from 'lucide-react';
 import type { Difficulty } from '@/types';
 import { useGameStore } from '@/store/gameStore';
+import { PlayerSilhouette } from '@/components/PlayerSilhouette';
+import { Onboarding, hasSeenOnboarding } from '@/components/Onboarding';
+import { cardReveal, staggerContainer } from '@/lib/motion';
 import './Home.css';
 
 const DIFFICULTIES: { value: Difficulty; label: string; hint: string }[] = [
@@ -10,12 +15,37 @@ const DIFFICULTIES: { value: Difficulty; label: string; hint: string }[] = [
   { value: 'hard', label: 'Hard', hint: 'Name, position, team & era only. Ball-knowledge flex.' },
 ];
 
+// A flattering, fully-lit teaser build so the centerpiece reads as a finished
+// legend on the landing screen. (The live build-up happens on the Build screen.)
+const HOME_FILL = {
+  shooting: 92,
+  playmaking: 78,
+  defense: 82,
+  clutch: 95,
+  athleticism: 86,
+  rebounding: 80,
+  height: 84,
+  basketballIq: 88,
+};
+
+// Ambient floating-gold-particle field. Deterministic so there's no layout shift
+// and SSR/screenshot output is stable; CSS drives the motion (see Home.css).
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  left: (i * 53) % 100,
+  size: 2 + (i % 3),
+  delay: -((i * 1.37) % 9),
+  duration: 9 + (i % 6),
+  drift: (i % 2 ? 1 : -1) * (8 + (i % 4) * 6),
+  opacity: 0.35 + (i % 4) * 0.15,
+}));
+
 export default function Home() {
   const navigate = useNavigate();
+  const reduced = useReducedMotion() ?? false;
   const difficulty = useGameStore((s) => s.difficulty);
   const setDifficulty = useGameStore((s) => s.setDifficulty);
   const reset = useGameStore((s) => s.reset);
-  const [howToOpen, setHowToOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
 
   function start() {
     reset();
@@ -25,49 +55,81 @@ export default function Home() {
 
   return (
     <main className="home">
-      <div className="home__hero">
-        <h1 className="home__logo">12&ndash;0</h1>
-        <p className="home__tagline">Can you break Bill Russell&rsquo;s record?</p>
+      <div className="home__particles" aria-hidden="true">
+        {PARTICLES.map((p, i) => (
+          <span
+            key={i}
+            className="home__particle"
+            style={
+              {
+                left: `${p.left}%`,
+                '--p-size': `${p.size}px`,
+                '--p-delay': `${p.delay}s`,
+                '--p-dur': `${p.duration}s`,
+                '--p-drift': `${p.drift}px`,
+                '--p-opacity': p.opacity,
+              } as React.CSSProperties
+            }
+          />
+        ))}
       </div>
 
-      <div className="home__controls">
-        <div className="home__difficulty" role="radiogroup" aria-label="Difficulty">
-          {DIFFICULTIES.map((d) => (
-            <button
-              key={d.value}
-              role="radio"
-              aria-checked={difficulty === d.value}
-              className={`pill ${difficulty === d.value ? 'pill--active' : ''}`}
-              onClick={() => setDifficulty(d.value)}
-              title={d.hint}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
+      <motion.div
+        className="home__inner"
+        variants={staggerContainer(0.08)}
+        initial="hidden"
+        animate="show"
+      >
+        <motion.p className="home__eyebrow" variants={cardReveal(reduced)}>
+          Build the perfect player
+        </motion.p>
+        <motion.h1 className="home__logo" variants={cardReveal(reduced)}>
+          12&ndash;0
+        </motion.h1>
+        <motion.p className="home__tagline" variants={cardReveal(reduced)}>
+          Can you break Bill Russell&rsquo;s record?
+        </motion.p>
 
-        <button className="cta" onClick={start}>
-          Build Your Legend
-        </button>
+        <motion.div className="home__stage" variants={cardReveal(reduced)}>
+          <PlayerSilhouette mode="complete" size="lg" filled={HOME_FILL} className="home__silhouette" />
+        </motion.div>
 
-        <button className="home__teaser" disabled title="Coming in v1.5">
-          🕰️ Rewriting History &mdash; Coming Soon
-        </button>
-      </div>
+        <motion.div className="home__controls" variants={cardReveal(reduced)}>
+          <div className="home__difficulty" role="radiogroup" aria-label="Difficulty">
+            {DIFFICULTIES.map((d) => (
+              <button
+                key={d.value}
+                role="radio"
+                aria-checked={difficulty === d.value}
+                className={`pill ${difficulty === d.value ? 'pill--active' : ''}`}
+                onClick={() => setDifficulty(d.value)}
+                title={d.hint}
+              >
+                {d.label}
+              </button>
+            ))}
+          </div>
 
-      <button className="home__howto-toggle" onClick={() => setHowToOpen((v) => !v)}>
-        How to play {howToOpen ? '▲' : '▼'}
-      </button>
-      {howToOpen && (
-        <div className="home__howto">
-          <p>
-            Roll a <strong>franchise + decade</strong>, pick a real player, and assign them to one of
-            9 attribute categories. Fill all 9 and choose your starting franchise across 10 rolls,
-            then simulate an entire career and see if you can go <strong>12&ndash;0</strong> in the
-            Finals.
-          </p>
-        </div>
-      )}
+          <button className="cta home__cta" onClick={start}>
+            Build Your Legend
+          </button>
+
+          <button className="home__teaser" disabled title="Coming in v1.5">
+            <Clock size={15} aria-hidden="true" />
+            Rewriting History
+            <span className="home__teaser-badge">
+              <Lock size={11} aria-hidden="true" />
+              v1.5
+            </span>
+          </button>
+
+          <button className="home__howto" onClick={() => setShowOnboarding(true)}>
+            How to play
+          </button>
+        </motion.div>
+      </motion.div>
+
+      {showOnboarding && <Onboarding onClose={() => setShowOnboarding(false)} />}
     </main>
   );
 }

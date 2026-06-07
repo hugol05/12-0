@@ -1,0 +1,164 @@
+/* Onboarding — first-run "how to play" overlay (WS6).
+   Full-screen scrim + a single stepper card, OLED-dark with gold accents. */
+
+.onboarding {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top) + var(--space-6)) var(--space-6)
+    calc(var(--safe-bottom) + var(--space-6));
+}
+
+.onboarding__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: none;
+  cursor: pointer;
+}
+
+.onboarding__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--gradient-surface);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-elevated);
+}
+
+.onboarding__close {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+
+.onboarding__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-raised);
+}
+
+.onboarding__close:focus-visible {
+  outline: 2px solid var(--gold-glow);
+  outline-offset: 2px;
+}
+
+/* Step content — fixed min-height so the card doesn't jump as steps swap. */
+.onboarding__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  min-height: 188px;
+}
+
+.onboarding__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-1);
+  border-radius: var(--radius-full);
+  color: var(--gold-glow);
+  background: var(--gold-soft);
+  border: 1px solid var(--gold-soft);
+  box-shadow: var(--shadow-gold);
+}
+
+.onboarding__kicker {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold-primary);
+}
+
+.onboarding__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  color: var(--text-primary);
+}
+
+.onboarding__body {
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.onboarding__dots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.onboarding__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  transition: background var(--dur-fast) var(--ease-out), width var(--dur-fast) var(--ease-out);
+}
+
+.onboarding__dot.is-active {
+  width: 22px;
+  background: var(--gold-primary);
+}
+
+.onboarding__dot:focus-visible {
+  outline: 2px solid var(--gold-glow);
+  outline-offset: 3px;
+}
+
+.onboarding__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.onboarding__skip {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
+  border-radius: var(--radius-full);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.onboarding__skip:hover {
+  color: var(--text-primary);
+}
+
+.onboarding__next {
+  flex: 1;
+  font-size: var(--text-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onboarding__close,
+  .onboarding__skip,
+  .onboarding__dot {
+    transition: none;
+  }
+}
