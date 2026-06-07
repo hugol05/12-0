@@ -32,6 +32,12 @@ interface GameState {
   advanceRoll: () => void;
   setSeed: (seed: number) => void;
   setResult: (r: SimulationResult | null) => void;
+  loadBuild: (b: {
+    difficulty: Difficulty;
+    seed: number;
+    franchise: FranchiseSelection;
+    assignments: AttributeAssignment[];
+  }) => void;
   reset: () => void;
 }
 
@@ -65,6 +71,18 @@ export const useGameStore = create<GameState>()(
       advanceRoll: () => set((s) => ({ rollIndex: s.rollIndex + 1 })),
       setSeed: (seed) => set({ seed }),
       setResult: (result) => set({ result }),
+      loadBuild: (b) =>
+        set({
+          mode: 'newChapter',
+          difficulty: b.difficulty,
+          seed: b.seed,
+          franchise: b.franchise,
+          assignments: b.assignments,
+          rollIndex: 10,
+          rerollsLeft: 0,
+          usedBuckets: [],
+          result: null,
+        }),
       reset: () => set({ ...initialState }),
     }),
     {

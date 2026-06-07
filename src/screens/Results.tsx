@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
+import { encodeBuild, shareUrl } from '@/share/shareLink';
 import './Results.css';
 
 export default function Results() {
@@ -9,6 +10,10 @@ export default function Results() {
   const { data } = useGameData();
   const result = useGameStore((s) => s.result);
   const reset = useGameStore((s) => s.reset);
+  const difficulty = useGameStore((s) => s.difficulty);
+  const seed = useGameStore((s) => s.seed);
+  const franchise = useGameStore((s) => s.franchise);
+  const assignments = useGameStore((s) => s.assignments);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -26,9 +31,22 @@ export default function Results() {
 
   const share = async () => {
     const line = `I went ${finals.wins}\u2013${finals.losses} in the Finals on 12-0. Legacy: ${legacyTier}.`;
+    const code = encodeBuild({
+      difficulty,
+      seed,
+      dataVersion: result.dataVersion,
+      franchise,
+      assignments,
+    });
+    const url = code ? shareUrl(code) : undefined;
+    const text = url ? `${line} Replay my exact run:` : line;
     try {
-      if (navigator.share) await navigator.share({ title: '12-0', text: line });
-      else { await navigator.clipboard.writeText(line); setCopied(true); setTimeout(() => setCopied(false), 1800); }
+      if (navigator.share) await navigator.share({ title: '12-0', text, url });
+      else {
+        await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      }
     } catch { /* user dismissed share sheet */ }
   };
 

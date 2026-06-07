@@ -7,6 +7,7 @@ const BuildPlayer = lazy(() => import('./screens/BuildPlayer'));
 const Preview = lazy(() => import('./screens/Preview'));
 const Simulate = lazy(() => import('./screens/Simulate'));
 const Results = lazy(() => import('./screens/Results'));
+const Replay = lazy(() => import('./screens/Replay'));
 
 function withSuspense(node: React.ReactNode) {
   return <Suspense fallback={null}>{node}</Suspense>;
@@ -18,4 +19,5 @@ export const router = createBrowserRouter([
   { path: '/preview', element: withSuspense(<Preview />) },
   { path: '/simulate', element: withSuspense(<Simulate />) },
   { path: '/results', element: withSuspense(<Results />) },
+  { path: '/r', element: withSuspense(<Replay />) },
 ]);

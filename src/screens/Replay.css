@@ -1,0 +1,26 @@
+.replay {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.replay__loading {
+  font-size: 1rem;
+  letter-spacing: 0.02em;
+}
+
+.replay__box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 320px;
+}
+
+.replay__msg {
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
