@@ -1,5 +1,5 @@
-/* PlayerSilhouette — the animated centerpiece figure.
-   Sizes set the rendered width; the SVG keeps its 220:340 portrait aspect. */
+/* PlayerSilhouette — the single, unified centerpiece figure.
+   Sizes set the rendered width; the SVG keeps its 200:360 portrait aspect. */
 
 .silhouette {
   display: inline-block;
@@ -10,7 +10,7 @@
   width: 100%;
   height: auto;
   display: block;
-  overflow: visible; /* let zone glow spill past the viewBox edges */
+  overflow: visible; /* let the glow spill past the viewBox edges */
 }
 
 .silhouette--sm {

@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { Franchise, OvrCategory, Player, Position, RatingCategory, RollBucket } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
-import { CATEGORIES, OVR_WEIGHTS } from '@/simulation/categories';
+import { CATEGORIES, OVR_WEIGHTS, computeOvr } from '@/simulation/categories';
 import { BuildStage, type StageSlot } from '@/components/BuildStage';
 import { TeamBadge } from '@/components/TeamBadge';
 import { cardReveal, staggerContainer } from '@/lib/motion';
@@ -17,21 +17,32 @@ const POS_FILTERS: { label: string; match: (p: Position) => boolean }[] = [
   { label: 'C', match: (p) => p === 'C' },
 ];
 
-// Display order of the 9 rings: [0..2] top, [3..5] left column, [6..8] right column.
-const STAGE_ORDER: { category: RatingCategory; label: string }[] = [
-  { category: 'shooting', label: 'Shooting' },
-  { category: 'playmaking', label: 'Playmaking' },
-  { category: 'clutch', label: 'Clutch' },
-  { category: 'defense', label: 'Defense' },
-  { category: 'rebounding', label: 'Rebounding' },
-  { category: 'athleticism', label: 'Athleticism' },
-  { category: 'height', label: 'Height' },
-  { category: 'basketballIq', label: 'IQ' },
-  { category: 'durability', label: 'Durability' },
+// Display order of the 9 rings, forming a bracket (⊓):
+//   [0..2] top row, [3..5] left column (top→bottom), [6..8] right column (top→bottom).
+const STAGE_ORDER: { category: RatingCategory; label: string; icon: string }[] = [
+  // top row — physical / mental traits
+  { category: 'height', label: 'Height', icon: '📏' },
+  { category: 'basketballIq', label: 'IQ', icon: '🧠' },
+  { category: 'rebounding', label: 'Rebounding', icon: '💪' },
+  // left column — offense
+  { category: 'shooting', label: 'Shooting', icon: '🎯' },
+  { category: 'playmaking', label: 'Playmaking', icon: '🏀' },
+  { category: 'clutch', label: 'Clutch', icon: '🔥' },
+  // right column — defense / physical
+  { category: 'defense', label: 'Defense', icon: '🛡️' },
+  { category: 'athleticism', label: 'Athleticism', icon: '⚡' },
+  { category: 'durability', label: 'Durability', icon: '🏋️' },
 ];
 
 const bucketKey = (b: { franchise: string; decade: string }) => `${b.franchise}:${b.decade}`;
-const ROLL_MS = 650;
+const ROLL_MS = 900;
+
+/** Stable pseudo-random key for a string (used to shuffle the Hard-mode roster without hints). */
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h >>> 0;
+}
 
 export default function BuildPlayer() {
   const navigate = useNavigate();
@@ -167,13 +178,17 @@ export default function BuildPlayer() {
     if (!data || !bucket) return [] as Player[];
     const f = POS_FILTERS[filter].match;
     const q = search.trim().toLowerCase();
-    return bucket.playerIds
+    const list = bucket.playerIds
       .map((id) => data.playersById.get(id))
       .filter((p): p is Player => !!p)
       .filter((p) => p.positions.some(f))
-      .filter((p) => !q || p.name.toLowerCase().includes(q))
-      .sort((a, b) => b.ratings[STAGE_ORDER[0].category] - a.ratings[STAGE_ORDER[0].category]);
-  }, [data, bucket, filter, search]);
+      .filter((p) => !q || p.name.toLowerCase().includes(q));
+    // Hard hides all hints — including ordering — so shuffle stably; otherwise rank by OVR.
+    if (difficulty === 'hard') {
+      return list.sort((a, b) => hashStr(a.id) - hashStr(b.id));
+    }
+    return list.sort((a, b) => computeOvr(b.ratings) - computeOvr(a.ratings));
+  }, [data, bucket, filter, search, difficulty]);
 
   // running OVR = weighted average over the OVR categories assigned so far
   const ovrSoFar = useMemo(() => {
@@ -188,26 +203,38 @@ export default function BuildPlayer() {
 
   // build the 9 ring slots
   const slots: StageSlot[] = useMemo(() => {
-    return STAGE_ORDER.map(({ category, label }) => {
+    return STAGE_ORDER.map(({ category, label, icon }) => {
       const a = assignments.find((x) => x.category === category);
       if (a) {
         const pl = data?.playersById.get(a.playerId);
         const photoUrl = pl && pl.photo.status === 'verified' ? pl.photo.url : undefined;
-        return { category, label, fill: { rating: a.rating, playerName: pl?.name ?? '—', photoUrl } };
+        return { category, label, icon, fill: { rating: a.rating, playerName: pl?.name ?? '—', photoUrl } };
       }
       const open = phase === 'attributes' && !!selected && !rolling;
-      return { category, label, highlighted: open, onClick: open ? () => assign(category) : undefined };
+      return { category, label, icon, highlighted: open, onClick: open ? () => assign(category) : undefined };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignments, data, selected, phase, rolling]);
 
+  // stable value pools for the slot-machine reels (team badges / decades)
+  const teamPool = useMemo(() => (data ? data.franchises.map((f) => f.id) : []), [data]);
+  const eraPool = useMemo(
+    () => (data ? Array.from(new Set(data.rollIndex.buckets.map((b) => b.decade))) : []),
+    [data],
+  );
+
   if (loading) return <main className="build build--center"><p className="muted">Loading rosters…</p></main>;
   if (error) return <main className="build build--center"><p className="muted">Failed to load data: {error}</p></main>;
   if (!data) return <main className="build build--center"><p className="muted">Rolling…</p></main>;
+  // Once the build is locked we navigate to /preview. Render a minimal, static page
+  // during that exit so the route transition (AnimatePresence mode="wait") completes
+  // cleanly instead of holding the heavy BuildStage on screen.
+  if (phase === 'done') {
+    return <main className="build build--center"><p className="build__entering muted">Entering your career…</p></main>;
+  }
 
   const fr = bucket ? data.franchisesById.get(bucket.franchise) : null;
-  const showStats = difficulty !== 'hard';
-  const showRatings = difficulty !== 'hard'; // category ratings revealed once a player is selected
+  const showStats = difficulty === 'easy' || difficulty === 'normal'; // box stats in the list (Hard hides)
 
   return (
     <main className="build">
@@ -223,9 +250,7 @@ export default function BuildPlayer() {
       {/* ── centerpiece: silhouette + 9 category rings ── */}
       <BuildStage slots={slots} ovr={ovrSoFar} className="build__stage" />
 
-      {phase === 'done' ? (
-        <p className="build__entering muted">Entering your career…</p>
-      ) : phase === 'franchise' ? (
+      {phase === 'franchise' ? (
         <FranchisePanel
           fr={startRoll}
           rolling={rolling}
@@ -235,21 +260,24 @@ export default function BuildPlayer() {
         />
       ) : (
         <>
-          {/* ── roll (team + era), smooth + always visible ── */}
+          {/* ── roll (team + era) — slot-machine reels, always showing the team badge ── */}
           <section className="roll2">
-            <Reel
+            <SlotReel
               className="roll2__team"
               rolling={rolling || !bucket}
-              pool={data.franchises.map((f) => f.abbreviation)}
-              render={() => <TeamBadge franchiseId={bucket!.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="md" />}
-              shuffleRender={(s) => <span className="roll2__shuf">{s}</span>}
+              pool={teamPool}
+              renderCell={(id) => {
+                const f = data.franchisesById.get(id);
+                return <TeamBadge franchiseId={id} abbreviation={f?.abbreviation} name={f?.name} size="md" />;
+              }}
+              final={bucket ? <TeamBadge franchiseId={bucket.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="lg" /> : null}
             />
-            <Reel
+            <SlotReel
               className="roll2__era"
               rolling={rolling || !bucket}
-              pool={data.rollIndex.buckets.map((b) => b.decade)}
-              render={() => <span className="roll2__decade">{bucket!.decade}</span>}
-              shuffleRender={(s) => <span className="roll2__shuf">{s}</span>}
+              pool={eraPool}
+              renderCell={(d) => <span className="roll2__decade roll2__decade--spin">{d}</span>}
+              final={bucket ? <span className="roll2__decade">{bucket.decade}</span> : null}
             />
             <div className="roll2__rerolls">
               <button className="reroll" onClick={rerollTeam} disabled={rerollTeamLeft <= 0 || rolling || teamAlternatives === 0}>
@@ -261,8 +289,8 @@ export default function BuildPlayer() {
             </div>
           </section>
 
-          {/* ── active player's 9 ratings (assign by clicking a ring or a chip) ── */}
-          {selected && (
+          {/* Easy only: the active player's full rating breakdown (assign via chip or ring). */}
+          {selected && difficulty === 'easy' && (
             <section className="ratingrow" aria-label={`${selected.name} ratings`}>
               <p className="ratingrow__name">{selected.name} <span>· {selected.positions.join('/')}</span></p>
               <div className="ratingrow__chips">
@@ -277,13 +305,20 @@ export default function BuildPlayer() {
                       title={taken ? 'Already filled' : `Assign ${c.label}`}
                     >
                       <span className="chip__cat">{c.icon}</span>
-                      {showRatings ? <b className="chip__val">{selected.ratings[c.key]}</b> : <b className="chip__val">＋</b>}
+                      <b className="chip__val">{selected.ratings[c.key]}</b>
                     </button>
                   );
                 })}
               </div>
-              <p className="ratingrow__hint">{selected ? 'Tap a glowing ring (or a chip) to lock this player into a category' : ''}</p>
+              <p className="ratingrow__hint">Tap a glowing ring (or a chip) to lock this player into a category</p>
             </section>
+          )}
+
+          {/* Normal / Hard: no ratings revealed — just a prompt to place them. */}
+          {selected && difficulty !== 'easy' && (
+            <p className="pickhint">
+              <b>{selected.name}</b> <span>· {selected.positions.join('/')}</span> — tap a glowing ring to lock them in
+            </p>
           )}
 
           {/* ── player list ── */}
@@ -313,7 +348,6 @@ export default function BuildPlayer() {
                       {showStats && (
                         <span className="player__stats">{p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG</span>
                       )}
-                      {isActive && <span className="player__active">selecting →</span>}
                     </button>
                   </motion.li>
                 );
@@ -326,33 +360,45 @@ export default function BuildPlayer() {
   );
 }
 
-/** A small reel that rapidly shuffles random pool values while `rolling`, then shows the real content. */
-function Reel({
+/**
+ * SlotReel — a slot-machine reel. While `rolling`, a vertical strip of random
+ * picks scrolls upward with motion blur (see .slot in BuildPlayer.css); when it
+ * stops, the real value lands with a spring. Drives both the team (badges) and
+ * era (decades) reels — the team reel therefore always shows badges, never bare
+ * letters.
+ */
+function SlotReel<T>({
   rolling,
   pool,
-  render,
-  shuffleRender,
+  renderCell,
+  final,
   className = '',
 }: {
   rolling: boolean;
-  pool: string[];
-  render: () => ReactNode;
-  shuffleRender: (s: string) => ReactNode;
+  pool: T[];
+  renderCell: (item: T) => ReactNode;
+  final: ReactNode;
   className?: string;
 }) {
-  const [shuf, setShuf] = useState('');
-  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => {
-    if (!rolling || pool.length === 0) {
-      if (timer.current) { clearInterval(timer.current); timer.current = null; }
-      return;
-    }
-    timer.current = setInterval(() => {
-      setShuf(pool[Math.floor(Math.random() * pool.length)]);
-    }, 70);
-    return () => { if (timer.current) clearInterval(timer.current); timer.current = null; };
+  // Fresh random cells each time a spin begins; doubled so the upward loop is seamless.
+  const cells = useMemo(() => {
+    if (!rolling || pool.length === 0) return [] as T[];
+    return Array.from({ length: 8 }, () => pool[Math.floor(Math.random() * pool.length)]);
   }, [rolling, pool]);
-  return <div className={`reel2 ${className}`}>{rolling ? shuffleRender(shuf) : render()}</div>;
+
+  return (
+    <div className={`slot ${className}`}>
+      {rolling && cells.length > 0 ? (
+        <div className="slot__strip" aria-hidden>
+          {cells.concat(cells).map((c, i) => (
+            <div className="slot__cell" key={i}>{renderCell(c)}</div>
+          ))}
+        </div>
+      ) : (
+        <div className="slot__final">{final}</div>
+      )}
+    </div>
+  );
 }
 
 /** Strength / age / market are masked into readable labels so the player reads good-future vs win-now. */

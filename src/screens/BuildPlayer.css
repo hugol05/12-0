@@ -34,14 +34,52 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
 }
-.reel2 {
-  height: 3rem;
+/* ── slot-machine reel ──────────────────────────────────────── */
+.slot {
+  --slot-h: 4rem;
+  position: relative;
+  height: var(--slot-h);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  /* fade the top & bottom edges so it reads as a reel window */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 78%, transparent);
 }
 .roll2__team { grid-area: team; }
 .roll2__era { grid-area: era; }
+
+.slot__strip {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  animation: slotSpin 0.42s linear infinite;
+  filter: blur(0.8px);
+  will-change: transform;
+}
+.slot__cell {
+  flex: 0 0 var(--slot-h);
+  height: var(--slot-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* slight vertical squash sells the motion-blur "distortion" while spinning */
+  transform: scaleY(1.12);
+}
+@keyframes slotSpin {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.slot__final { animation: slotLand 0.34s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes slotLand {
+  0% { transform: translateY(-16px) scale(0.86); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 .roll2__decade {
   font-family: var(--font-display);
   font-size: var(--text-2xl);
@@ -49,14 +87,14 @@
   color: var(--gold-primary);
   letter-spacing: var(--tracking-display);
 }
-.roll2__shuf {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-bold);
-  color: var(--gold-deep);
-  letter-spacing: var(--tracking-display);
-  opacity: 0.85;
+.roll2__decade--spin { color: var(--gold-deep); opacity: 0.9; }
+
+@media (prefers-reduced-motion: reduce) {
+  .slot__strip { animation: none; filter: none; }
+  .slot__cell { transform: none; }
+  .slot__final { animation: none; }
 }
+
 .roll2__rerolls { grid-area: rerolls; display: flex; gap: var(--space-2); }
 .reroll {
   flex: 1;
@@ -102,6 +140,20 @@
 .chip--taken { opacity: 0.35; cursor: not-allowed; }
 .ratingrow__hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-tertiary); }
 
+/* Normal / Hard: slim prompt instead of the full rating breakdown */
+.pickhint {
+  padding: var(--space-3);
+  background: var(--bg-raised);
+  border: 1px solid var(--gold-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-gold);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.pickhint b { font-family: var(--font-display); font-weight: var(--weight-bold); color: var(--text-primary); }
+.pickhint span { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--silver); }
+
 /* ── player list ───────────────────────────────────────────── */
 .pick__controls { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
 .pick__filters { display: flex; gap: var(--space-2); }
@@ -121,7 +173,7 @@
   width: 100%;
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: 'name pos' 'stats active';
+  grid-template-areas: 'name pos' 'stats stats';
   align-items: center;
   gap: 2px var(--space-3);
   padding: var(--space-3);
@@ -139,7 +191,6 @@
 .player__name { grid-area: name; font-weight: var(--weight-semibold); }
 .player__pos { grid-area: pos; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--silver); }
 .player__stats { grid-area: stats; font-size: var(--text-xs); color: var(--text-secondary); }
-.player__active { grid-area: active; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--gold-primary); }
 
 /* ── starting-franchise panel ──────────────────────────────── */
 .franpanel {
