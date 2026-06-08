@@ -9,13 +9,17 @@ import type {
 } from '@/types';
 import type { SimulationResult } from '@/simulation/types';
 
-const STORAGE_VERSION = 1;
+const STORAGE_VERSION = 2;
 
 interface GameState {
   mode: GameMode;
   difficulty: Difficulty;
   rollIndex: number; // 0-based, up to 10 rolls
-  rerollsLeft: number;
+  // Granular re-rolls: 1 to swap the team and 1 to swap the era during the 9 attribute rolls,
+  // plus 1 dedicated re-roll on the final starting-franchise roll.
+  rerollTeamLeft: number;
+  rerollEraLeft: number;
+  rerollFranchiseLeft: number;
   assignments: AttributeAssignment[];
   franchise: FranchiseSelection | null;
   usedBuckets: string[]; // "GSW:2010s" strings already rolled
@@ -28,7 +32,9 @@ interface GameState {
   assignPlayer: (a: AttributeAssignment) => void;
   setFranchise: (f: FranchiseSelection) => void;
   markBucketUsed: (key: string) => void;
-  useReroll: () => void;
+  useRerollTeam: () => void;
+  useRerollEra: () => void;
+  useRerollFranchise: () => void;
   advanceRoll: () => void;
   setSeed: (seed: number) => void;
   setResult: (r: SimulationResult | null) => void;
@@ -45,7 +51,9 @@ const initialState = {
   mode: 'newChapter' as GameMode,
   difficulty: 'normal' as Difficulty,
   rollIndex: 0,
-  rerollsLeft: 2,
+  rerollTeamLeft: 1,
+  rerollEraLeft: 1,
+  rerollFranchiseLeft: 1,
   assignments: [] as AttributeAssignment[],
   franchise: null as FranchiseSelection | null,
   usedBuckets: [] as string[],
@@ -67,7 +75,9 @@ export const useGameStore = create<GameState>()(
       setFranchise: (franchise) => set({ franchise }),
       markBucketUsed: (key) =>
         set((s) => (s.usedBuckets.includes(key) ? s : { usedBuckets: [...s.usedBuckets, key] })),
-      useReroll: () => set((s) => ({ rerollsLeft: Math.max(0, s.rerollsLeft - 1) })),
+      useRerollTeam: () => set((s) => ({ rerollTeamLeft: Math.max(0, s.rerollTeamLeft - 1) })),
+      useRerollEra: () => set((s) => ({ rerollEraLeft: Math.max(0, s.rerollEraLeft - 1) })),
+      useRerollFranchise: () => set((s) => ({ rerollFranchiseLeft: Math.max(0, s.rerollFranchiseLeft - 1) })),
       advanceRoll: () => set((s) => ({ rollIndex: s.rollIndex + 1 })),
       setSeed: (seed) => set({ seed }),
       setResult: (result) => set({ result }),
@@ -79,7 +89,9 @@ export const useGameStore = create<GameState>()(
           franchise: b.franchise,
           assignments: b.assignments,
           rollIndex: 10,
-          rerollsLeft: 0,
+          rerollTeamLeft: 0,
+          rerollEraLeft: 0,
+          rerollFranchiseLeft: 0,
           usedBuckets: [],
           result: null,
         }),
@@ -88,12 +100,17 @@ export const useGameStore = create<GameState>()(
     {
       name: '12-0:build',
       version: STORAGE_VERSION,
+      // Old persisted shapes (e.g. the v1 single `rerollsLeft`) are merged over the current
+      // defaults; fields that no longer exist are dropped and new reroll fields take their defaults.
+      migrate: (persisted) => persisted as GameState,
       // The simulation result is large and re-derivable from the build; never persist it.
       partialize: (s) => ({
         mode: s.mode,
         difficulty: s.difficulty,
         rollIndex: s.rollIndex,
-        rerollsLeft: s.rerollsLeft,
+        rerollTeamLeft: s.rerollTeamLeft,
+        rerollEraLeft: s.rerollEraLeft,
+        rerollFranchiseLeft: s.rerollFranchiseLeft,
         assignments: s.assignments,
         franchise: s.franchise,
         usedBuckets: s.usedBuckets,

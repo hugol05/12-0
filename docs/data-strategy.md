@@ -164,12 +164,16 @@ Every normalized row must include:
 
 Generate a first-pass rating for all 9 categories using deterministic formulas. Ratings must be reproducible from normalized inputs and a versioned formula file.
 
-Each metric is percentile-ranked **within the player's peak decade** (so a 1960s player isn't punished for absent 3PT/STL/BLK columns), then mapped to 0-99 via `rate(p) = clamp(round(38 + p·57), 25, 99)`. Curated overrides are layered last and may exceed that band for documented apex cases.
+Inputs are a **prime-weighted** representative line: token/rookie/decline seasons (< half a player's peak-minutes season) are dropped and the biggest seasons are emphasised (minutes^1.3), so durable greats aren't diluted by long career tails — ratings reflect a player's prime, like 2K.
+
+Each metric is percentile-ranked **within the player's peak decade** (so a 1960s player isn't punished for absent 3PT/STL/BLK columns), then mapped to 0-99 via a star-separating convex curve `rate(p) = clamp(round(36 + 63·p^1.25), 25, 99)` — ceiling 99 (so all-time greats reach the top of the scale) and convex (so the elite pull away from the merely-good instead of bunching in the 80s).
+
+Skill ratings (all except height/durability) then take an **era-strength discount** by peak decade — `1940s −6, 1950s −4.5, 1960s −3, 1970s −4, 1980s −1.5, 1990s −0.5, 2000s+ 0` — because percentile-within-decade otherwise rates a top-of-era player in a shallow old league equal to a top-of-era star in today's far deeper league. True greats stay near the top after the haircut; merely-very-good role players drop. Height (a 7-footer is 7 feet in any era) and durability (era-neutral longevity) are not discounted. Curated overrides are layered last and may exceed the 0-99 band for documented apex cases.
 
 | Rating | Formula source (as implemented in `scripts/data/build.ts`) | Override allowed? | Confidence rule |
 |--------|----------------|-------------------|-----------------|
 | Shooting | **Shooting touch/efficiency, not scoring volume.** 1980+: `0.30·FT%-rank + 0.25·3P%-rank + 0.18·3PAr-rank + 0.17·eFG%-rank + 0.10·TS%-rank` (PPG demoted to **zero**). Pre-1980 (no 3PT columns): `0.45·FT%-rank + 0.35·TS%-rank + 0.20·PPG-rank`. FT% is the best cross-era touch proxy. | Yes | Lower (`medium`) before 1979-80 where range evidence is missing. |
-| Height/Wingspan | Real listed height (inches) where known; else position-estimated. Map: `clamp(round((inches−72)/12·32 + 57), 25, 99)` → 6'0"≈57, 7'0"≈89. | Yes | High for real height; `low` when estimated (no measured wingspan). |
+| Height/Wingspan | Real listed height (inches) where known; else position-estimated. Map: `clamp(round((inches−72)/12·32 + 57), 25, 99)` → 6'0"≈57, 7'0"≈89. **Not era-discounted.** | Yes | High for real height; `low` when estimated (no measured wingspan). |
 | Playmaking | `0.65·APG-rank + 0.35·AST%-rank` | Yes | Lower before turnover data starts in 1977-78. |
 | Defense | 1974+: `0.7·(STL+BLK)-rank + 0.3·TRB%-rank`. Pre-1974: `0.55·TRB%-rank + neutral` (no steals/blocks). | Yes | Lower before steals/blocks start in 1973-74. |
 | Rebounding | `0.6·RPG-rank + 0.4·TRB%-rank` | Yes | Lower before rebound data starts in 1950-51 and before split rebounds in 1973-74. |

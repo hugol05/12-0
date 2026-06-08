@@ -23,9 +23,9 @@
 
 ## How the Game Works (For Any Agent)
 
-### 1. Player Building Phase (10 Rolls)
+### 1. Player Building Phase (9 attribute rolls + 1 franchise roll)
 
-You make **10 rolls**, each revealing a random **franchise + decade** combo (e.g. "1990s Bulls"). From the roster, you **pick a player** and **assign them to one of 9 attribute categories**. One roll must be used to select your **starting franchise** instead.
+You make **9 attribute rolls**, each revealing a random **franchise + decade** combo (e.g. "1990s Bulls"). From the roster, you **pick a player**; the player goes active and the unfilled category rings around the silhouette light up — **click a ring to assign** that player to a category. A running OVR updates as you fill rings. After all 9 categories are filled, a **10th, dedicated roll** picks your **starting franchise** (team only — New Chapter always begins in 2026-27); its strength/age/market are shown as masked tags so you can read win-now vs. build-for-later.
 
 **The 9 attribute categories:**
 
@@ -41,7 +41,7 @@ You make **10 rolls**, each revealing a random **franchise + decade** combo (e.g
 | 8 | Clutch | 🔥 | OVR (15% weight) — **most impactful for 12-0** |
 | 9 | Durability | 🏋️ | Career length only (NOT in OVR) |
 
-**Re-rolls:** 2 total (can re-roll franchise or decade independently).
+**Re-rolls:** during the 9 attribute rolls, **1 re-roll to swap the team** (keeps the era) and **1 to swap the era** (keeps the team) — each usable once for the whole build. The final starting-franchise roll has its own **1 re-roll**.
 
 ### 2. Career Simulation
 

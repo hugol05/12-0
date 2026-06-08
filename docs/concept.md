@@ -108,9 +108,9 @@ After picking a player, you see the unfilled categories and choose where to plac
 
 ### The Franchise Slot
 
-One of your 10 rolls MUST be used for franchise selection. You can use it on any roll — early (to lock in your team) or late (to see what's left). When you choose franchise:
-- In **"Rewriting History"** mode: Your player joins that team in that decade
-- In **"New Chapter"** mode: Your player joins that team in 2026 (decade is ignored for placement)
+The starting franchise is a **dedicated final roll**, taken *after* all 9 attribute categories are filled — it is no longer something you can claim on an arbitrary roll. It rolls a **team only** and shows that team's masked profile (strength / age / market) so you can read a win-now vs. build-for-later landing spot before committing. It has its own single re-roll.
+- In **"New Chapter"** mode (v1.0): Your player joins that team in 2026-27 (the franchise roll carries no decade).
+- In **"Rewriting History"** mode (v1.5): the starting decade returns, so the franchise roll will also carry an era and your player joins that team in that decade.
 
 ---
 

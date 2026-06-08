@@ -52,6 +52,18 @@ interface Player {
 
 const POS_HEIGHT: Record<Pos, number> = { PG: 73, SG: 77, SF: 80, PF: 82, C: 84 };
 
+// Era-strength discount (points subtracted from skill ratings, by peak decade). Ratings are
+// percentile-ranked WITHIN a decade, which makes a top-of-era player in a shallow old league look
+// as good as a top-of-era player in today's far deeper league. This gradient corrects for that:
+// a 95th-percentile 1970s big is genuinely strong, but not the equal of a modern 95th-percentile
+// star. True all-time greats sit high enough in their era to remain near the top after the haircut;
+// merely-very-good role players (Alvan Adams, Bob Lanier) drop to where they belong. Height and
+// durability are NOT era-adjusted (a 7-footer is 7 feet in any era; longevity is era-neutral).
+const ERA_PEN: Record<string, number> = {
+  '1940s': 6, '1950s': 4.5, '1960s': 3, '1970s': 4, '1980s': 1.5, '1990s': 0.5,
+  '2000s': 0, '2010s': 0, '2020s': 0,
+};
+
 function parsePos(raw: string | undefined): Pos {
   const t = (raw ?? '').split(/[-/]/)[0].trim().toUpperCase();
   if (t === 'PG' || t === 'G') return 'PG';
@@ -213,8 +225,16 @@ async function main(): Promise<void> {
     const totalG = statRows.reduce((a, s) => a + s.g, 0);
     if (totalG < MIN_CAREER_GAMES) continue;
 
-    const wsum = statRows.reduce((a, s) => a + s.minutes, 0) || 1;
-    const w = (sel: (s: SeasonRow) => number) => statRows.reduce((a, s) => a + sel(s) * s.minutes, 0) / wsum;
+    // Prime-weighted representative line. 2K-style ratings reflect a player's PRIME, not their
+    // career average — so drop token/rookie/decline seasons (< half the player's peak-minutes
+    // season) and emphasise the biggest seasons (minutes^1.3). This stops durable greats
+    // (Kareem, Kobe, LeBron) from being diluted by long tails of low-minute seasons.
+    const maxMin = Math.max(...statRows.map((s) => s.minutes));
+    const primeRows = statRows.filter((s) => s.minutes >= 0.5 * maxMin);
+    const wRows = primeRows.length ? primeRows : statRows;
+    const wt = (s: SeasonRow) => Math.pow(s.minutes, 1.3);
+    const wsum = wRows.reduce((a, s) => a + wt(s), 0) || 1;
+    const w = (sel: (s: SeasonRow) => number) => wRows.reduce((a, s) => a + sel(s) * wt(s), 0) / wsum;
     const rep: Record<string, number> = {
       ppg: w((s) => s.ppg), rpg: w((s) => s.rpg), apg: w((s) => s.apg), spg: w((s) => s.spg),
       bpg: w((s) => s.bpg), topg: w((s) => s.topg), ts: w((s) => s.ts), astPct: w((s) => s.astPct),
@@ -252,7 +272,11 @@ async function main(): Promise<void> {
     for (const m of metrics) r[m] = percentileRanker(list.map((a) => a.rep[m]));
     rankers.set(era, r);
   }
-  const rate = (p: number) => clamp(Math.round(38 + p * 57), 25, 99);
+  // Percentile -> rating curve. Ceiling raised to 99 (was 95) so all-time greats can actually
+  // reach the top of the scale, and gently convex (exponent > 1) so the elite separate from the
+  // merely-good instead of everyone bunching in the 80s.
+  const STAR_EXP = 1.25;
+  const rate = (p: number) => clamp(Math.round(36 + 63 * Math.pow(clamp(p, 0, 1), STAR_EXP)), 25, 99);
 
   // ---- assemble players ----
   const usedIds = new Set<string>();
@@ -266,27 +290,31 @@ async function main(): Promise<void> {
     const hasStlBlk = a.primaryYear >= 1974;
     const modern = a.primaryYear >= 1996;
 
+    // era-adjusted rate: percentile -> rating, minus the era-strength discount for this peak decade.
+    const eraPen = ERA_PEN[a.era] ?? 0;
+    const R = (p: number) => clamp(Math.round(rate(p) - eraPen), 25, 99);
+
     // Shooting = shooting TOUCH/efficiency, not scoring volume. 1980+ blends FT% (best cross-era
     // touch proxy) + 3P% (range efficiency) + 3PAr (range willingness/volume) + eFG%/TS% (overall
     // efficiency). PPG is demoted to zero so high-volume non-shooters (Shaq, prime Giannis) fall.
     // Pre-1980 has no 3PT columns, so fall back to FT% + TS% + a small era-relative scoring rank.
     const shooting = has3pt
-      ? rate(0.30 * rk.ftPct(a.rep.ftPct) + 0.25 * rk.tpPct(a.rep.tpPct) + 0.18 * rk.tpar(a.rep.tpar)
+      ? R(0.30 * rk.ftPct(a.rep.ftPct) + 0.25 * rk.tpPct(a.rep.tpPct) + 0.18 * rk.tpar(a.rep.tpar)
            + 0.17 * rk.efg(a.rep.efg) + 0.10 * rk.ts(a.rep.ts))
-      : rate(0.45 * rk.ftPct(a.rep.ftPct) + 0.35 * rk.ts(a.rep.ts) + 0.20 * rk.ppg(a.rep.ppg));
-    const playmaking = rate(0.65 * rk.apg(a.rep.apg) + 0.35 * rk.astPct(a.rep.astPct));
-    const rebounding = rate(0.6 * rk.rpg(a.rep.rpg) + 0.4 * rk.rebPct(a.rep.rebPct));
+      : R(0.45 * rk.ftPct(a.rep.ftPct) + 0.35 * rk.ts(a.rep.ts) + 0.20 * rk.ppg(a.rep.ppg));
+    const playmaking = R(0.65 * rk.apg(a.rep.apg) + 0.35 * rk.astPct(a.rep.astPct));
+    const rebounding = R(0.6 * rk.rpg(a.rep.rpg) + 0.4 * rk.rebPct(a.rep.rebPct));
     const defense = hasStlBlk
-      ? rate(0.7 * rk.stlBlk(a.rep.stlBlk) + 0.3 * rk.rebPct(a.rep.rebPct))
-      : rate(0.55 * rk.rebPct(a.rep.rebPct) + 0.45 * 0.5);
+      ? R(0.7 * rk.stlBlk(a.rep.stlBlk) + 0.3 * rk.rebPct(a.rep.rebPct))
+      : R(0.55 * rk.rebPct(a.rep.rebPct) + 0.45 * 0.5);
     // Athleticism: box stats are a weak proxy. Steals (perimeter quickness) + ORB% (leaping/motor)
     // lead; blocks are demoted (0.20) so plodding rim-protectors stop topping the scale. Famous
     // athletic reputations are finalised via curated overrides (de-rating plodders, boosting flyers).
     const athleticism = hasStlBlk
-      ? rate(0.45 * rk.spg(a.rep.spg) + 0.35 * rk.orbPct(a.rep.orbPct) + 0.20 * rk.bpg(a.rep.bpg))
-      : rate(0.5 * rk.rpg(a.rep.rpg) + 0.5 * rk.ppg(a.rep.ppg));
-    const basketballIq = rate(0.5 * rk.astTov(a.rep.astTov) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.ftPct(a.rep.ftPct));
-    const clutch = rate(0.5 * rk.ppg(a.rep.ppg) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.usg(a.rep.usg));
+      ? R(0.45 * rk.spg(a.rep.spg) + 0.35 * rk.orbPct(a.rep.orbPct) + 0.20 * rk.bpg(a.rep.bpg))
+      : R(0.5 * rk.rpg(a.rep.rpg) + 0.5 * rk.ppg(a.rep.ppg));
+    const basketballIq = R(0.5 * rk.astTov(a.rep.astTov) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.ftPct(a.rep.ftPct));
+    const clutch = R(0.5 * rk.ppg(a.rep.ppg) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.usg(a.rep.usg));
     // Height: real listed inches where known; re-tuned linear map so 6'0" guards land ~57 and
     // 7-footers ~89 (32 points per foot above 6'0"). Estimated heights stay flagged confidence:low.
     const height = clamp(Math.round(((a.p.heightIn - 72) / 12) * 32 + 57), 25, 99);

@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import type { OvrCategory, Player, Position, RatingCategory, RollBucket } from '@/types';
-import { useGameStore, unfilledCategories } from '@/store/gameStore';
+import { motion, useReducedMotion } from 'framer-motion';
+import type { Franchise, OvrCategory, Player, Position, RatingCategory, RollBucket } from '@/types';
+import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
-import { CATEGORIES, OVR_WEIGHTS, computeOvr } from '@/simulation/categories';
-import { PlayerSilhouette } from '@/components/PlayerSilhouette';
+import { CATEGORIES, OVR_WEIGHTS } from '@/simulation/categories';
+import { BuildStage, type StageSlot } from '@/components/BuildStage';
 import { TeamBadge } from '@/components/TeamBadge';
-import { DURATION, cardReveal, pageTransition, pageVariants, slotTransition, staggerContainer } from '@/lib/motion';
+import { cardReveal, staggerContainer } from '@/lib/motion';
 import './BuildPlayer.css';
 
 const POS_FILTERS: { label: string; match: (p: Position) => boolean }[] = [
@@ -17,12 +17,21 @@ const POS_FILTERS: { label: string; match: (p: Position) => boolean }[] = [
   { label: 'C', match: (p) => p === 'C' },
 ];
 
-const bucketKey = (b: { franchise: string; decade: string }) => `${b.franchise}:${b.decade}`;
+// Display order of the 9 rings: [0..2] top, [3..5] left column, [6..8] right column.
+const STAGE_ORDER: { category: RatingCategory; label: string }[] = [
+  { category: 'shooting', label: 'Shooting' },
+  { category: 'playmaking', label: 'Playmaking' },
+  { category: 'clutch', label: 'Clutch' },
+  { category: 'defense', label: 'Defense' },
+  { category: 'rebounding', label: 'Rebounding' },
+  { category: 'athleticism', label: 'Athleticism' },
+  { category: 'height', label: 'Height' },
+  { category: 'basketballIq', label: 'IQ' },
+  { category: 'durability', label: 'Durability' },
+];
 
-// Slot-reel geometry. A reel is a vertical strip of fillers ending on the real
-// value; we translate it up so the final item lands in the one-row window.
-const REEL_FILLERS = 18;
-const DECADE_DELAY = 0.22; // decade reel lands a beat after the franchise reel
+const bucketKey = (b: { franchise: string; decade: string }) => `${b.franchise}:${b.decade}`;
+const ROLL_MS = 650;
 
 export default function BuildPlayer() {
   const navigate = useNavigate();
@@ -33,86 +42,116 @@ export default function BuildPlayer() {
   const assignments = useGameStore((s) => s.assignments);
   const franchise = useGameStore((s) => s.franchise);
   const usedBuckets = useGameStore((s) => s.usedBuckets);
-  const rerollsLeft = useGameStore((s) => s.rerollsLeft);
+  const rerollTeamLeft = useGameStore((s) => s.rerollTeamLeft);
+  const rerollEraLeft = useGameStore((s) => s.rerollEraLeft);
+  const rerollFranchiseLeft = useGameStore((s) => s.rerollFranchiseLeft);
   const assignPlayer = useGameStore((s) => s.assignPlayer);
   const setFranchise = useGameStore((s) => s.setFranchise);
   const markBucketUsed = useGameStore((s) => s.markBucketUsed);
-  const useReroll = useGameStore((s) => s.useReroll);
+  const useRerollTeam = useGameStore((s) => s.useRerollTeam);
+  const useRerollEra = useGameStore((s) => s.useRerollEra);
+  const useRerollFranchise = useGameStore((s) => s.useRerollFranchise);
   const advanceRoll = useGameStore((s) => s.advanceRoll);
 
   const [bucket, setBucket] = useState<RollBucket | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
+  const [startRoll, setStartRoll] = useState<Franchise | null>(null);
   const [filter, setFilter] = useState(0);
   const [search, setSearch] = useState('');
+  const [rolling, setRolling] = useState(false);
 
-  // Slot-machine spin state — bumped whenever a fresh bucket appears.
-  const [spinId, setSpinId] = useState(0);
-  const [spinning, setSpinning] = useState(false);
-
-  const needFranchise = !franchise;
-  const unfilled = unfilledCategories(assignments);
-  const done = assignments.length === 9 && !needFranchise;
+  const attrDone = assignments.length === 9;
+  const phase: 'attributes' | 'franchise' | 'done' = !attrDone ? 'attributes' : franchise ? 'done' : 'franchise';
   const placements = assignments.length + (franchise ? 1 : 0);
 
-  // pick a random bucket not already used (and not the one currently shown)
-  const drawBucket = useCallback(
-    (exclude?: string): RollBucket | null => {
-      if (!data) return null;
-      const used = new Set(usedBuckets);
-      if (exclude) used.add(exclude);
-      const pool = data.rollIndex.buckets.filter((b) => !used.has(bucketKey(b)));
-      if (pool.length === 0) return null;
-      return pool[Math.floor(Math.random() * pool.length)];
-    },
-    [data, usedBuckets],
-  );
+  // ── attribute phase: draw a fresh bucket whenever we need one ──
+  const drawBucket = useCallback((): RollBucket | null => {
+    if (!data) return null;
+    const used = new Set(usedBuckets);
+    const pool = data.rollIndex.buckets.filter((b) => !used.has(bucketKey(b)));
+    if (pool.length === 0) return null;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }, [data, usedBuckets]);
 
-  // auto-roll a fresh bucket whenever we need one
   useEffect(() => {
-    if (!data || done || bucket) return;
+    if (!data || phase !== 'attributes' || bucket) return;
     const next = drawBucket();
     if (next) {
       setBucket(next);
       markBucketUsed(bucketKey(next));
     }
-  }, [data, done, bucket, drawBucket, markBucketUsed]);
+  }, [data, phase, bucket, drawBucket, markBucketUsed]);
 
-  // spin the reels each time a new bucket lands, then reveal the roster
-  const currentKey = bucket ? bucketKey(bucket) : null;
+  // ── franchise phase: roll a starting team ──
   useEffect(() => {
-    if (!currentKey) return;
-    setSpinId((n) => n + 1);
-    setSpinning(true);
-    const ms = (reduced ? DURATION.fast : DURATION.roll) * 1000 + DECADE_DELAY * 1000 + 140;
-    const t = setTimeout(() => setSpinning(false), ms);
+    if (!data || phase !== 'franchise' || startRoll) return;
+    setStartRoll(data.franchises[Math.floor(Math.random() * data.franchises.length)]);
+  }, [data, phase, startRoll]);
+
+  // brief, smooth roll flourish whenever the rolled subject changes (never blanks the screen)
+  const rollSubject = phase === 'franchise' ? startRoll?.id : bucket ? bucketKey(bucket) : null;
+  useEffect(() => {
+    if (!rollSubject) return;
+    setRolling(true);
+    const t = setTimeout(() => setRolling(false), reduced ? 0 : ROLL_MS);
     return () => clearTimeout(t);
-  }, [currentKey, reduced]);
+  }, [rollSubject, reduced]);
 
-  // when the build is complete, move to preview
+  // advance to preview once the starting franchise is locked
   useEffect(() => {
-    if (done) navigate('/preview');
-  }, [done, navigate]);
+    if (phase === 'done') navigate('/preview');
+  }, [phase, navigate]);
 
-  const reroll = () => {
-    if (rerollsLeft <= 0 || !bucket || spinning) return;
-    const next = drawBucket(bucketKey(bucket));
-    if (!next) return;
+  // ── re-rolls (attribute phase) ──
+  const teamAlternatives = useMemo(() => {
+    if (!data || !bucket) return 0;
+    const used = new Set(usedBuckets);
+    return data.rollIndex.buckets.filter((b) => b.decade === bucket.decade && b.franchise !== bucket.franchise && !used.has(bucketKey(b))).length;
+  }, [data, bucket, usedBuckets]);
+  const eraAlternatives = useMemo(() => {
+    if (!data || !bucket) return 0;
+    const used = new Set(usedBuckets);
+    return data.rollIndex.buckets.filter((b) => b.franchise === bucket.franchise && b.decade !== bucket.decade && !used.has(bucketKey(b))).length;
+  }, [data, bucket, usedBuckets]);
+
+  const swapBucket = (pred: (b: RollBucket) => boolean) => {
+    if (!data || !bucket || rolling) return false;
+    const used = new Set(usedBuckets);
+    const pool = data.rollIndex.buckets.filter((b) => pred(b) && !used.has(bucketKey(b)));
+    if (!pool.length) return false;
+    const next = pool[Math.floor(Math.random() * pool.length)];
     markBucketUsed(bucketKey(next));
     setBucket(next);
     setSelected(null);
-    useReroll();
+    return true;
+  };
+  const rerollTeam = () => {
+    if (rerollTeamLeft <= 0 || !bucket) return;
+    if (swapBucket((b) => b.decade === bucket.decade && b.franchise !== bucket.franchise)) useRerollTeam();
+  };
+  const rerollEra = () => {
+    if (rerollEraLeft <= 0 || !bucket) return;
+    if (swapBucket((b) => b.franchise === bucket.franchise && b.decade !== bucket.decade)) useRerollEra();
   };
 
-  const placeFranchise = () => {
-    if (!bucket) return;
-    setFranchise({ franchise: bucket.franchise, decade: bucket.decade });
+  // ── franchise reroll / confirm ──
+  const rerollFranchise = () => {
+    if (!data || rerollFranchiseLeft <= 0 || !startRoll || rolling) return;
+    const pool = data.franchises.filter((f) => f.id !== startRoll.id);
+    if (!pool.length) return;
+    setStartRoll(pool[Math.floor(Math.random() * pool.length)]);
+    useRerollFranchise();
+  };
+  const confirmFranchise = () => {
+    if (!startRoll) return;
+    setFranchise({ franchise: startRoll.id, decade: '2020s' });
     advanceRoll();
-    setBucket(null);
-    setSelected(null);
   };
 
+  // ── assignment ──
   const assign = (category: RatingCategory) => {
     if (!selected || !bucket) return;
+    if (assignments.some((a) => a.category === category)) return;
     assignPlayer({
       category,
       playerId: selected.id,
@@ -125,7 +164,7 @@ export default function BuildPlayer() {
   };
 
   const roster = useMemo(() => {
-    if (!data || !bucket) return [];
+    if (!data || !bucket) return [] as Player[];
     const f = POS_FILTERS[filter].match;
     const q = search.trim().toLowerCase();
     return bucket.playerIds
@@ -133,49 +172,45 @@ export default function BuildPlayer() {
       .filter((p): p is Player => !!p)
       .filter((p) => p.positions.some(f))
       .filter((p) => !q || p.name.toLowerCase().includes(q))
-      .map((p) => ({ p, ovr: computeOvr(p.ratings) }))
-      .sort((a, b) => b.ovr - a.ovr);
+      .sort((a, b) => b.ratings[STAGE_ORDER[0].category] - a.ratings[STAGE_ORDER[0].category]);
   }, [data, bucket, filter, search]);
 
-  // live silhouette + running OVR from what's been assigned so far
-  const filled = useMemo(() => {
-    const f: Partial<Record<RatingCategory, number>> = {};
-    for (const a of assignments) f[a.category] = a.rating;
-    return f;
-  }, [assignments]);
+  // running OVR = weighted average over the OVR categories assigned so far
   const ovrSoFar = useMemo(() => {
-    let sum = 0;
+    let num = 0;
+    let den = 0;
     for (const a of assignments) {
       const w = OVR_WEIGHTS[a.category as OvrCategory];
-      if (w) sum += a.rating * w;
+      if (w) { num += a.rating * w; den += w; }
     }
-    return Math.round(sum);
+    return den ? Math.round(num / den) : null;
   }, [assignments]);
 
-  const franchisePool = useMemo(() => (data ? data.franchises.map((f) => f.abbreviation) : []), [data]);
-  const decadePool = useMemo(
-    () => (data ? Array.from(new Set(data.rollIndex.buckets.map((b) => b.decade))) : []),
-    [data],
-  );
+  // build the 9 ring slots
+  const slots: StageSlot[] = useMemo(() => {
+    return STAGE_ORDER.map(({ category, label }) => {
+      const a = assignments.find((x) => x.category === category);
+      if (a) {
+        const pl = data?.playersById.get(a.playerId);
+        const photoUrl = pl && pl.photo.status === 'verified' ? pl.photo.url : undefined;
+        return { category, label, fill: { rating: a.rating, playerName: pl?.name ?? '—', photoUrl } };
+      }
+      const open = phase === 'attributes' && !!selected && !rolling;
+      return { category, label, highlighted: open, onClick: open ? () => assign(category) : undefined };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignments, data, selected, phase, rolling]);
 
   if (loading) return <main className="build build--center"><p className="muted">Loading rosters…</p></main>;
   if (error) return <main className="build build--center"><p className="muted">Failed to load data: {error}</p></main>;
-  if (!data || !bucket) return <main className="build build--center"><p className="muted">Rolling…</p></main>;
+  if (!data) return <main className="build build--center"><p className="muted">Rolling…</p></main>;
 
-  const fr = data.franchisesById.get(bucket.franchise);
-  const startFr = franchise ? data.franchisesById.get(franchise.franchise) : null;
+  const fr = bucket ? data.franchisesById.get(bucket.franchise) : null;
   const showStats = difficulty !== 'hard';
-  const showOvr = difficulty !== 'hard';
-  const showRatingRow = difficulty === 'easy';
+  const showRatings = difficulty !== 'hard'; // category ratings revealed once a player is selected
 
   return (
-    <motion.main
-      className="build"
-      variants={pageVariants(reduced)}
-      initial="initial"
-      animate="enter"
-      transition={pageTransition}
-    >
+    <main className="build">
       <header className="build__head">
         <div className="build__progress" aria-label={`${placements} of 10 placed`}>
           {Array.from({ length: 10 }, (_, i) => (
@@ -185,244 +220,199 @@ export default function BuildPlayer() {
         <p className="build__count">{placements}<span>/10</span></p>
       </header>
 
-      {/* ── slot-machine roll ─────────────────────────────────── */}
-      <section className="roll">
-        <p className="roll__eyebrow">{needFranchise ? 'Pick a player — or claim this team' : 'Draft a player'}</p>
-        <div className="roll__slots">
-          <div className="roll__slot">
-            <AnimatePresence mode="wait" initial={false}>
-              {spinning ? (
-                <SlotReel
-                  key={`fr-spin-${spinId}`}
-                  finalLabel={fr?.abbreviation ?? bucket.franchise}
-                  pool={franchisePool}
-                  spinId={spinId}
-                  reduced={reduced}
-                />
-              ) : (
-                <motion.div
-                  key={`fr-land-${spinId}`}
-                  className="roll__landed"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: DURATION.fast }}
-                >
-                  <TeamBadge franchiseId={bucket.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="lg" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <span className="roll__caption">{fr?.name ?? bucket.franchise}</span>
-          </div>
+      {/* ── centerpiece: silhouette + 9 category rings ── */}
+      <BuildStage slots={slots} ovr={ovrSoFar} className="build__stage" />
 
-          <div className="roll__slot">
-            <AnimatePresence mode="wait" initial={false}>
-              {spinning ? (
-                <SlotReel
-                  key={`dec-spin-${spinId}`}
-                  finalLabel={bucket.decade}
-                  pool={decadePool}
-                  spinId={spinId}
-                  reduced={reduced}
-                  delay={DECADE_DELAY}
-                />
-              ) : (
-                <motion.div
-                  key={`dec-land-${spinId}`}
-                  className="roll__landed roll__landed--decade"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: DURATION.fast }}
-                >
-                  <span className="roll__decade">{bucket.decade}</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <span className="roll__caption">Era</span>
-          </div>
-        </div>
-        <button className="roll__reroll" onClick={reroll} disabled={rerollsLeft <= 0 || spinning}>
-          ↻ Re-roll · {rerollsLeft} left
-        </button>
-      </section>
+      {phase === 'done' ? (
+        <p className="build__entering muted">Entering your career…</p>
+      ) : phase === 'franchise' ? (
+        <FranchisePanel
+          fr={startRoll}
+          rolling={rolling}
+          rerollLeft={rerollFranchiseLeft}
+          onReroll={rerollFranchise}
+          onConfirm={confirmFranchise}
+        />
+      ) : (
+        <>
+          {/* ── roll (team + era), smooth + always visible ── */}
+          <section className="roll2">
+            <Reel
+              className="roll2__team"
+              rolling={rolling || !bucket}
+              pool={data.franchises.map((f) => f.abbreviation)}
+              render={() => <TeamBadge franchiseId={bucket!.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="md" />}
+              shuffleRender={(s) => <span className="roll2__shuf">{s}</span>}
+            />
+            <Reel
+              className="roll2__era"
+              rolling={rolling || !bucket}
+              pool={data.rollIndex.buckets.map((b) => b.decade)}
+              render={() => <span className="roll2__decade">{bucket!.decade}</span>}
+              shuffleRender={(s) => <span className="roll2__shuf">{s}</span>}
+            />
+            <div className="roll2__rerolls">
+              <button className="reroll" onClick={rerollTeam} disabled={rerollTeamLeft <= 0 || rolling || teamAlternatives === 0}>
+                ↻ Team · {rerollTeamLeft}
+              </button>
+              <button className="reroll" onClick={rerollEra} disabled={rerollEraLeft <= 0 || rolling || eraAlternatives === 0}>
+                ↻ Era · {rerollEraLeft}
+              </button>
+            </div>
+          </section>
 
-      {/* ── pick / assign ─────────────────────────────────────── */}
-      <div className="build__main">
-        <AnimatePresence mode="wait" initial={false}>
-          {spinning ? (
-            <motion.p
-              key="rolling"
-              className="build__rolling muted"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              Spinning the wheel…
-            </motion.p>
-          ) : selected ? (
-            <motion.section
-              key="assign"
-              className="assign"
-              variants={pageVariants(reduced)}
-              initial="initial"
-              animate="enter"
-              exit="exit"
-              transition={pageTransition}
-            >
-              <button className="assign__back" onClick={() => setSelected(null)}>← back to roster</button>
-              <h3 className="assign__title">{selected.name} <span>· {selected.positions.join('/')}</span></h3>
-              <p className="muted">Assign to a category:</p>
-              <div className="assign__grid">
+          {/* ── active player's 9 ratings (assign by clicking a ring or a chip) ── */}
+          {selected && (
+            <section className="ratingrow" aria-label={`${selected.name} ratings`}>
+              <p className="ratingrow__name">{selected.name} <span>· {selected.positions.join('/')}</span></p>
+              <div className="ratingrow__chips">
                 {CATEGORIES.map((c) => {
-                  const isFilled = !unfilled.includes(c.key);
-                  const rating = selected.ratings[c.key];
+                  const taken = assignments.some((a) => a.category === c.key);
                   return (
                     <button
                       key={c.key}
-                      className="assign__cat"
-                      disabled={isFilled}
+                      className={`chip ${taken ? 'chip--taken' : 'chip--open'}`}
+                      disabled={taken}
                       onClick={() => assign(c.key)}
+                      title={taken ? 'Already filled' : `Assign ${c.label}`}
                     >
-                      <span className="assign__cat-name">{c.icon} {c.label}</span>
-                      {isFilled ? (
-                        <span className="muted">filled ✓</span>
-                      ) : (
-                        <span className="assign__rating">{fitLabel(rating, difficulty)}</span>
-                      )}
+                      <span className="chip__cat">{c.icon}</span>
+                      {showRatings ? <b className="chip__val">{selected.ratings[c.key]}</b> : <b className="chip__val">＋</b>}
                     </button>
                   );
                 })}
               </div>
-            </motion.section>
-          ) : (
-            <motion.section
-              key="pick"
-              className="pick"
-              variants={pageVariants(reduced)}
-              initial="initial"
-              animate="enter"
-              exit="exit"
-              transition={pageTransition}
-            >
-              <div className="pick__controls">
-                <div className="pick__filters">
-                  {POS_FILTERS.map((f, i) => (
-                    <button key={f.label} className={`pill ${i === filter ? 'pill--active' : ''}`} onClick={() => setFilter(i)}>{f.label}</button>
-                  ))}
-                </div>
-                <input
-                  className="pick__search"
-                  placeholder="Search player…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
+              <p className="ratingrow__hint">{selected ? 'Tap a glowing ring (or a chip) to lock this player into a category' : ''}</p>
+            </section>
+          )}
 
-              <motion.ul
-                className="pick__list"
-                variants={staggerContainer(0.035)}
-                initial="hidden"
-                animate="show"
-              >
-                {roster.map(({ p, ovr }) => (
+          {/* ── player list ── */}
+          <section className="pick">
+            <div className="pick__controls">
+              <div className="pick__filters">
+                {POS_FILTERS.map((f, i) => (
+                  <button key={f.label} className={`pill ${i === filter ? 'pill--active' : ''}`} onClick={() => setFilter(i)}>{f.label}</button>
+                ))}
+              </div>
+              <input
+                className="pick__search"
+                placeholder="Search player…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <motion.ul className="pick__list" variants={staggerContainer(0.03)} initial="hidden" animate="show">
+              {roster.map((p) => {
+                const isActive = selected?.id === p.id;
+                return (
                   <motion.li key={p.id} variants={cardReveal(reduced)}>
-                    <button className="player" onClick={() => setSelected(p)}>
+                    <button className={`player ${isActive ? 'player--active' : ''}`} onClick={() => setSelected(isActive ? null : p)}>
                       <span className="player__name">{p.name}</span>
                       <span className="player__pos">{p.positions.join('/')}</span>
                       {showStats && (
-                        <span className="player__stats">
-                          {p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG
-                        </span>
+                        <span className="player__stats">{p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG</span>
                       )}
-                      {showOvr && <span className="player__ovr">{ovr}</span>}
-                      {showRatingRow && (
-                        <span className="player__ratings">
-                          {CATEGORIES.map((c) => (
-                            <span key={c.key} className="player__rating-chip">
-                              {c.icon}<b>{p.ratings[c.key]}</b>
-                            </span>
-                          ))}
-                        </span>
-                      )}
+                      {isActive && <span className="player__active">selecting →</span>}
                     </button>
                   </motion.li>
-                ))}
-              </motion.ul>
-
-              {needFranchise && (
-                <button className="pick__franchise" onClick={placeFranchise}>
-                  🏠 Start your career on the {fr?.name ?? bucket.franchise}
-                </button>
-              )}
-            </motion.section>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* ── live "your player" stage ──────────────────────────── */}
-      <section className="stage">
-        <PlayerSilhouette filled={filled} mode="building" size="sm" className="stage__fig" />
-        <div className="stage__info">
-          <p className="stage__eyebrow">Your player</p>
-          <div className="stage__ovr">
-            <span className="stage__ovr-num">{assignments.length ? ovrSoFar : '—'}</span>
-            <span className="stage__ovr-label">OVR<br />so far</span>
-          </div>
-          <p className="stage__meta">{assignments.length}/8 attributes · {placements}/10 placed</p>
-          {startFr && (
-            <p className="stage__team">
-              <TeamBadge franchiseId={franchise!.franchise} abbreviation={startFr.abbreviation} name={startFr.name} size="sm" />
-              <span>{startFr.name}</span>
-            </p>
-          )}
-        </div>
-      </section>
-    </motion.main>
+                );
+              })}
+            </motion.ul>
+          </section>
+        </>
+      )}
+    </main>
   );
 }
 
-/** A single slot reel: a strip of random fillers spinning to a stop on `finalLabel`. */
-function SlotReel({
-  finalLabel,
+/** A small reel that rapidly shuffles random pool values while `rolling`, then shows the real content. */
+function Reel({
+  rolling,
   pool,
-  spinId,
-  reduced,
-  delay = 0,
+  render,
+  shuffleRender,
+  className = '',
 }: {
-  finalLabel: string;
+  rolling: boolean;
   pool: string[];
-  spinId: number;
-  reduced: boolean;
-  delay?: number;
+  render: () => ReactNode;
+  shuffleRender: (s: string) => ReactNode;
+  className?: string;
 }) {
-  const items = useMemo(() => {
-    const fillers = Array.from({ length: REEL_FILLERS }, () =>
-      pool.length ? pool[Math.floor(Math.random() * pool.length)] : finalLabel,
-    );
-    return [...fillers, finalLabel];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spinId, finalLabel]);
-
-  const travel = `-${(items.length - 1) * 100}%`;
-
-  return (
-    <div className="reel" aria-hidden>
-      <motion.div
-        className="reel__strip"
-        initial={{ y: 0 }}
-        animate={{ y: travel }}
-        transition={{ ...slotTransition(reduced), delay }}
-      >
-        {items.map((it, i) => (
-          <span className="reel__item" key={i}>{it}</span>
-        ))}
-      </motion.div>
-    </div>
-  );
+  const [shuf, setShuf] = useState('');
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (!rolling || pool.length === 0) {
+      if (timer.current) { clearInterval(timer.current); timer.current = null; }
+      return;
+    }
+    timer.current = setInterval(() => {
+      setShuf(pool[Math.floor(Math.random() * pool.length)]);
+    }, 70);
+    return () => { if (timer.current) clearInterval(timer.current); timer.current = null; };
+  }, [rolling, pool]);
+  return <div className={`reel2 ${className}`}>{rolling ? shuffleRender(shuf) : render()}</div>;
 }
 
-function fitLabel(rating: number, difficulty: string): string {
-  if (difficulty === 'hard') return 'assign';
-  const tier = rating >= 92 ? 'Great fit' : rating >= 82 ? 'Good fit' : rating >= 70 ? 'OK fit' : 'Weak fit';
-  if (difficulty === 'easy') return `${tier} · ${rating}`;
-  return tier;
+/** Strength / age / market are masked into readable labels so the player reads good-future vs win-now. */
+function strengthLabel(r: number): { label: string; tone: string } {
+  if (r >= 85) return { label: 'Title contender', tone: 'hot' };
+  if (r >= 78) return { label: 'Playoff team', tone: 'warm' };
+  if (r >= 70) return { label: 'Play-in hopeful', tone: 'mid' };
+  return { label: 'Rebuilding', tone: 'cold' };
+}
+function ageLabel(youth: number | undefined): string {
+  const y = youth ?? 0.5;
+  if (y >= 0.66) return 'Young core';
+  if (y >= 0.33) return 'Balanced roster';
+  return 'Veteran team';
+}
+function marketLabel(tier: string | undefined): string {
+  if (tier === 'large') return 'Big market';
+  if (tier === 'small') return 'Small market';
+  return 'Mid market';
+}
+function verdict(r: number, youth: number | undefined): string {
+  const young = (youth ?? 0.5) >= 0.55;
+  if (r >= 85) return young ? 'Loaded and young — win now and later.' : 'Win-now window — immediate impact.';
+  if (r >= 78) return young ? 'On the rise — a young playoff core.' : 'Solid now — push for more.';
+  if (r >= 70) return young ? 'Bright future — grow with a young core.' : "Middling — you're the difference.";
+  return 'A project — you carry the rebuild.';
+}
+
+function FranchisePanel({
+  fr,
+  rolling,
+  rerollLeft,
+  onReroll,
+  onConfirm,
+}: {
+  fr: Franchise | null;
+  rolling: boolean;
+  rerollLeft: number;
+  onReroll: () => void;
+  onConfirm: () => void;
+}) {
+  if (!fr) return <section className="franpanel"><p className="muted">Rolling your team…</p></section>;
+  const str = strengthLabel(fr.baseRating2026);
+  return (
+    <section className="franpanel">
+      <p className="franpanel__eyebrow">Your starting franchise</p>
+      <div className={`franpanel__card ${rolling ? 'franpanel__card--rolling' : ''}`}>
+        <TeamBadge franchiseId={fr.id} abbreviation={fr.abbreviation} name={fr.name} size="lg" />
+        <h2 className="franpanel__name">{fr.name}</h2>
+        <div className="franpanel__tags">
+          <span className={`ftag ftag--${str.tone}`}>{str.label}</span>
+          <span className="ftag">{ageLabel(fr.youthIndex)}</span>
+          <span className="ftag">{marketLabel(fr.marketTier)}</span>
+        </div>
+        <p className="franpanel__verdict">{verdict(fr.baseRating2026, fr.youthIndex)}</p>
+      </div>
+      <div className="franpanel__actions">
+        <button className="reroll" onClick={onReroll} disabled={rerollLeft <= 0 || rolling}>↻ Re-roll team · {rerollLeft}</button>
+        <button className="franpanel__go" onClick={onConfirm} disabled={rolling}>Start career →</button>
+      </div>
+    </section>
+  );
 }

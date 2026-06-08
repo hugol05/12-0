@@ -61,18 +61,23 @@ Note: Clutch has 15% weight because it directly impacts Finals performance, whic
 
 ## Roll Count & Re-Rolls
 
-### Total Rolls: 10
-- **9 rolls** for the 9 attribute categories
-- **1 roll** must be used for franchise selection
-- Since franchise uses one of your 10 rolls, you make 10 total rolls but only 9 produce player attributes
+### Total Rolls: 10 (9 attribute + 1 franchise)
+- **9 attribute rolls** — each a random franchise+decade combo. You pick a player from the roster, then click one of the unfilled category rings to assign that player to it.
+- **1 franchise roll** — a separate, dedicated final roll **after** the 9 categories are filled. It rolls a **team only** (no era — New Chapter always starts 2026-27) and shows the team's masked profile.
 
-### Re-Rolls: 2 Total
-- Can re-roll the **franchise** (get a different team)
-- Can re-roll the **decade** (same team, different era)
-- 2 re-rolls total across the whole game (use them wisely)
+### Re-Rolls
+- During the 9 attribute rolls: **1 re-roll to swap the team** (keeps the current era) and **1 to swap the era** (keeps the current team). Each is usable once for the whole build.
+- The franchise roll has its own dedicated **1 re-roll**.
+
+### Franchise profile (masked)
+The franchise roll surfaces the team's outlook so you can read good-future vs. immediate-impact, without exposing raw numbers:
+- **Strength** (from `baseRating2026`) → Title contender / Playoff team / Play-in hopeful / Rebuilding.
+- **Age** (from `youthIndex`) → Young core / Balanced roster / Veteran team.
+- **Market** (from `marketTier`) → Big / Mid / Small market.
+- A one-line verdict combines strength + age (e.g. "On the rise — a young playoff core").
 
 ### Roll Uniqueness
-You cannot get the same franchise+decade combo twice. If you roll "1990s Bulls" and pick Jordan, you won't roll "1990s Bulls" again. You could roll "2000s Bulls" or "1990s Lakers" though.
+You cannot get the same franchise+decade combo twice (re-rolls also avoid used combos). If you roll "1990s Bulls" and pick Jordan, you won't roll "1990s Bulls" again. You could roll "2000s Bulls" or "1990s Lakers" though.
 
 ---
 
