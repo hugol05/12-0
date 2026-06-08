@@ -14,6 +14,7 @@
     "typecheck": "tsc -b --noEmit",
     "data:build": "tsx scripts/data/build.ts",
     "data:validate": "tsx scripts/data/validate.ts",
+    "data:audit": "tsx scripts/data/audit.ts",
     "data": "npm run data:build && npm run data:validate"
   },
   "dependencies": {
