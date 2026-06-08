@@ -188,6 +188,76 @@
   border-radius: var(--radius-sm);
 }
 
+/* ── Championship / beat-Russell variant ──────────────────────── */
+.home--champ {
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(212, 168, 83, 0.16), transparent 55%),
+    var(--bg-void);
+}
+.champ__hero {
+  display: flex;
+  justify-content: center;
+}
+.champ__trophy {
+  width: clamp(96px, 26vw, 140px);
+  height: auto;
+  filter: drop-shadow(0 6px 26px rgba(212, 168, 83, 0.45));
+  animation: champ-bob 4.5s var(--ease-in-out) infinite;
+}
+@keyframes champ-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.champ__tagline {
+  max-width: 24ch;
+  line-height: 1.45;
+}
+.champ__tagline strong {
+  color: var(--gold-primary);
+  font-weight: var(--weight-bold);
+}
+
+.champ__rings {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 240px;
+  margin: var(--space-1) auto 0;
+}
+.champ__ring {
+  justify-self: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+.champ__ring--won {
+  border-color: var(--gold-primary);
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.35), transparent 70%);
+  box-shadow: 0 0 6px rgba(212, 168, 83, 0.4);
+}
+.champ__ring--goal {
+  border-color: #fff8e1;
+  border-style: dashed;
+  box-shadow: 0 0 0 3px rgba(255, 248, 225, 0.18), 0 0 14px rgba(255, 248, 225, 0.6);
+  animation: champ-goal 1.6s var(--ease-in-out) infinite;
+}
+@keyframes champ-goal {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 3px rgba(255, 248, 225, 0.16), 0 0 12px rgba(255, 248, 225, 0.5); }
+  50% { transform: scale(1.14); box-shadow: 0 0 0 4px rgba(255, 248, 225, 0.28), 0 0 20px rgba(255, 248, 225, 0.85); }
+}
+.champ__legend {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+}
+.champ__legend-won { color: var(--gold-primary); }
+.champ__legend-goal { color: #fff8e1; }
+
 @media (prefers-reduced-motion: reduce) {
   .home__particle {
     animation: none;
@@ -198,5 +268,8 @@
   }
   .home__howto {
     transition: none;
+  }
+  .champ__trophy, .champ__ring--goal {
+    animation: none;
   }
 }

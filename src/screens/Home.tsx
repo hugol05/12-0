@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Clock, Lock } from 'lucide-react';
 import type { Difficulty } from '@/types';
 import { useGameStore } from '@/store/gameStore';
-import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { Onboarding, hasSeenOnboarding } from '@/components/Onboarding';
 import { cardReveal, staggerContainer } from '@/lib/motion';
 import './Home.css';
@@ -15,29 +14,33 @@ const DIFFICULTIES: { value: Difficulty; label: string; hint: string }[] = [
   { value: 'hard', label: 'Hard', hint: 'Name, position, team & era only. Ball-knowledge flex.' },
 ];
 
-// A flattering, fully-lit teaser build so the centerpiece reads as a finished
-// legend on the landing screen. (The live build-up happens on the Build screen.)
-const HOME_FILL = {
-  shooting: 92,
-  playmaking: 78,
-  defense: 82,
-  clutch: 95,
-  athleticism: 86,
-  rebounding: 80,
-  height: 84,
-  basketballIq: 88,
-};
+// 12 championship rings: the first 11 are Russell's record; the 12th is the goal.
+const RINGS = Array.from({ length: 12 }, (_, i) => i);
 
-// Ambient floating-gold-particle field. Deterministic so there's no layout shift
-// and SSR/screenshot output is stable; CSS drives the motion (see Home.css).
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
-  left: (i * 53) % 100,
-  size: 2 + (i % 3),
-  delay: -((i * 1.37) % 9),
-  duration: 9 + (i % 6),
-  drift: (i % 2 ? 1 : -1) * (8 + (i % 4) * 6),
-  opacity: 0.35 + (i % 4) * 0.15,
-}));
+function Trophy() {
+  return (
+    <svg className="champ__trophy" viewBox="0 0 120 140" aria-hidden role="presentation">
+      <defs>
+        <linearGradient id="champ-gold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#f0dca0" />
+          <stop offset="50%" stopColor="#c69a44" />
+          <stop offset="100%" stopColor="#6b4f22" />
+        </linearGradient>
+      </defs>
+      {/* cup */}
+      <path d="M34 18 H86 V44 C86 64 74 78 60 78 C46 78 34 64 34 44 Z" fill="url(#champ-gold)" stroke="#f0dca0" strokeWidth="1.5" />
+      {/* handles */}
+      <path d="M34 24 C18 24 18 50 34 52" fill="none" stroke="url(#champ-gold)" strokeWidth="5" />
+      <path d="M86 24 C102 24 102 50 86 52" fill="none" stroke="url(#champ-gold)" strokeWidth="5" />
+      {/* stem + base */}
+      <rect x="55" y="78" width="10" height="20" fill="url(#champ-gold)" />
+      <rect x="40" y="98" width="40" height="9" rx="2" fill="url(#champ-gold)" />
+      <rect x="34" y="107" width="52" height="10" rx="2" fill="url(#champ-gold)" />
+      {/* star */}
+      <path d="M60 30 l4 9 10 1 -7.5 6.5 2.5 9.5 -9-5 -9 5 2.5-9.5 -7.5-6.5 10-1 Z" fill="#fff8e1" opacity="0.9" />
+    </svg>
+  );
+}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -54,44 +57,27 @@ export default function Home() {
   }
 
   return (
-    <main className="home">
-      <div className="home__particles" aria-hidden="true">
-        {PARTICLES.map((p, i) => (
-          <span
-            key={i}
-            className="home__particle"
-            style={
-              {
-                left: `${p.left}%`,
-                '--p-size': `${p.size}px`,
-                '--p-delay': `${p.delay}s`,
-                '--p-dur': `${p.duration}s`,
-                '--p-drift': `${p.drift}px`,
-                '--p-opacity': p.opacity,
-              } as React.CSSProperties
-            }
-          />
-        ))}
-      </div>
+    <main className="home home--champ">
+      <motion.div className="home__inner" variants={staggerContainer(0.08)} initial="hidden" animate="show">
+        <motion.div className="champ__hero" variants={cardReveal(reduced)}>
+          <Trophy />
+        </motion.div>
 
-      <motion.div
-        className="home__inner"
-        variants={staggerContainer(0.08)}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.p className="home__eyebrow" variants={cardReveal(reduced)}>
-          Build the perfect player
-        </motion.p>
-        <motion.h1 className="home__logo" variants={cardReveal(reduced)}>
-          12&ndash;0
-        </motion.h1>
-        <motion.p className="home__tagline" variants={cardReveal(reduced)}>
-          Can you break Bill Russell&rsquo;s record?
+        <motion.h1 className="home__logo" variants={cardReveal(reduced)}>12&ndash;0</motion.h1>
+        <motion.p className="home__tagline champ__tagline" variants={cardReveal(reduced)}>
+          11 rings made Bill Russell immortal.
+          <strong> Win 12.</strong>
         </motion.p>
 
-        <motion.div className="home__stage" variants={cardReveal(reduced)}>
-          <PlayerSilhouette mode="complete" size="lg" filled={HOME_FILL} className="home__silhouette" />
+        {/* ring counter: 11 won + the glowing 12th target */}
+        <motion.div className="champ__rings" variants={cardReveal(reduced)} aria-label="11 rings to beat, 1 to win">
+          {RINGS.map((i) => (
+            <span key={i} className={`champ__ring ${i < 11 ? 'champ__ring--won' : 'champ__ring--goal'}`} />
+          ))}
+        </motion.div>
+        <motion.div className="champ__legend" variants={cardReveal(reduced)}>
+          <span className="champ__legend-won">Russell&rsquo;s 11</span>
+          <span className="champ__legend-goal">Your 12th</span>
         </motion.div>
 
         <motion.div className="home__controls" variants={cardReveal(reduced)}>
@@ -110,22 +96,15 @@ export default function Home() {
             ))}
           </div>
 
-          <button className="cta home__cta" onClick={start}>
-            Build Your Legend
-          </button>
+          <button className="cta home__cta" onClick={start}>Chase the Record</button>
 
           <button className="home__teaser" disabled title="Coming in v1.5">
             <Clock size={15} aria-hidden="true" />
             Rewriting History
-            <span className="home__teaser-badge">
-              <Lock size={11} aria-hidden="true" />
-              v1.5
-            </span>
+            <span className="home__teaser-badge"><Lock size={11} aria-hidden="true" />v1.5</span>
           </button>
 
-          <button className="home__howto" onClick={() => setShowOnboarding(true)}>
-            How to play
-          </button>
+          <button className="home__howto" onClick={() => setShowOnboarding(true)}>How to play</button>
         </motion.div>
       </motion.div>
 
