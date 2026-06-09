@@ -134,31 +134,41 @@ describe('franchise trajectory model (WS7)', () => {
   });
 });
 
-describe('simulateCareer difficulty balance', () => {
+// NOTE: these use SYNTHETIC uniform ratings (every category == T), which behave very differently
+// from real, uneven builds — a uniform-T build spreads its clutch thin, so it is far harder than a
+// real T-OVR build that can stack a 99-clutch source. The precise, owner-facing targets (realistic
+// 94-OVR ~8-11 rings / 12-0 ~1-in-7, god build ~90% 12-0, optimal play ~20% reach 12) live in the
+// real-pool harness `_balanceProbe.test.ts`. These bands are just a coarse monotonic regression guard.
+describe('simulateCareer difficulty balance (synthetic uniform builds)', () => {
   const N = 600;
 
-  it('perfect rolls (all 95) hit 12-0 occasionally but not usually', () => {
+  it('uniform-99 (god-tier clutch) goes 12-0 most of the time', () => {
+    const rate = perfectRate(uniformRatings(99), N);
+    expect(rate).toBeGreaterThan(0.5);
+  });
+
+  it('uniform-95 hits 12-0 sometimes but is far from automatic', () => {
     const rate = perfectRate(uniformRatings(95), N);
-    // documented target ~20%
-    expect(rate).toBeGreaterThan(0.08);
-    expect(rate).toBeLessThan(0.4);
+    expect(rate).toBeGreaterThan(0.05);
+    expect(rate).toBeLessThan(0.45);
   });
 
-  it('good rolls (all 90) rarely go 12-0', () => {
+  it('uniform-90 almost never goes 12-0 (clutch 90 keeps dropping Finals)', () => {
     const rate = perfectRate(uniformRatings(90), N);
-    expect(rate).toBeGreaterThan(0.005);
-    expect(rate).toBeLessThan(0.12);
+    expect(rate).toBeLessThan(0.05);
   });
 
-  it('average rolls (all 85) almost never go 12-0', () => {
+  it('uniform-85 effectively never goes 12-0', () => {
     const rate = perfectRate(uniformRatings(85), N);
     expect(rate).toBeLessThan(0.02);
   });
 
   it('higher ratings monotonically improve perfect odds', () => {
+    const god = perfectRate(uniformRatings(99), N);
     const hi = perfectRate(uniformRatings(95), N);
     const mid = perfectRate(uniformRatings(90), N);
     const lo = perfectRate(uniformRatings(85), N);
+    expect(god).toBeGreaterThan(hi);
     expect(hi).toBeGreaterThan(mid);
     expect(mid).toBeGreaterThanOrEqual(lo);
   });

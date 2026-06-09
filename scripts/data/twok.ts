@@ -98,6 +98,27 @@ export async function loadTwok(aliases: Record<string, string>): Promise<Map<str
   return out;
 }
 
+/**
+ * Map each current player's canonical key -> their real 2025-26 team name, read straight from the
+ * current roster file. This is independent of loadTwok's dedup (which may keep a player's higher-rated
+ * ALL-TIME card, e.g. LeBron/Curry, and would otherwise hide their current team) — so the 2020s
+ * re-anchor sees every active player's actual franchise.
+ */
+export async function loadCurrentTeams(aliases: Record<string, string>): Promise<Map<string, string>> {
+  const aliasNorm = new Map<string, string>();
+  for (const [from, to] of Object.entries(aliases)) aliasNorm.set(normName(from), normName(to));
+  const canon = (name: string): string => aliasNorm.get(normName(name)) ?? normName(name);
+  const out = new Map<string, string>();
+  const rows = parseCsv(await readFile(join(TWOK_DIR, 'current_2k.csv'), 'utf8'));
+  for (const r of rows) {
+    const name = (r.name ?? '').trim();
+    const team = (r.team ?? '').trim();
+    if (!name || !team || team.startsWith('All-Time')) continue;
+    out.set(canon(name), team);
+  }
+  return out;
+}
+
 /** The 7 non-clutch, non-height categories, mapped directly from 2K attributes. */
 export function mapSkills(r: Record<string, string>): {
   shooting: number; playmaking: number; defense: number; rebounding: number;
@@ -109,10 +130,20 @@ export function mapSkills(r: Record<string, string>): {
   // Athleticism + inside finishing (dunks), so explosive rim-finishing isn't lost (no scoring slot for it).
   const athleticism = Math.round(0.70 * g('group_athleticism') + 0.15 * g('driving_dunk') + 0.15 * g('standing_dunk'));
   const basketballIq = Math.round(0.40 * g('pass_iq') + 0.30 * g('shot_iq') + 0.30 * g('help_defense_iq'));
+  // Defense is NOT 2K's group_defense 1:1 — that composite punishes elite rim protectors for weak
+  // steals/perimeter (Gobert group 78 despite interior 95 / block 80). Instead anchor on the player's
+  // BETTER of interior/perimeter defense (so neither a rim protector nor a point-of-attack stopper is
+  // dragged by their off-position), then blend group D, shot-blocking, and help-defense IQ.
+  const defense = Math.round(
+    0.40 * g('group_defense') +
+    0.30 * Math.max(g('interior_defense'), g('perimeter_defense')) +
+    0.18 * g('block') +
+    0.12 * g('help_defense_iq'),
+  );
   return {
     shooting: clamp(shooting, 25, 99),
     playmaking: clamp(Math.round(g('group_playmaking')), 25, 99),
-    defense: clamp(Math.round(g('group_defense')), 25, 99),
+    defense: clamp(defense, 25, 99),
     rebounding: clamp(Math.round(g('group_rebounding')), 25, 99),
     athleticism: clamp(athleticism, 25, 99),
     basketballIq: clamp(basketballIq, 25, 99),

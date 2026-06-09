@@ -89,7 +89,13 @@ Each season runs through this pipeline:
 
 1. **Calculate Player OVR** (age-adjusted, injury check)
 2. **Calculate Team Strength** = Player OVR + franchise base rating (heavily weighted towards player)
-3. **Regular Season** = Win total based on team strength + random variance (±5-10 games)
+3. **Regular Season** = Win total on a smooth, saturating curve of team strength (no hard cap, and no
+   floor of 70 for champions):
+   `wins = 50 + 14·tanh((strength − 82)/14) + U(−7, 7)`, plus a rare (10%) "career year" bonus
+   `U(0, clamp((strength − 78)/1.8, 0, 12))`. Real-pool measurements: champion seasons average
+   **~56-60 wins** (high-50s/low-60s, like real NBA title teams) regardless of build quality; **70-win
+   seasons are an elite outlier (≈0.5-1.6% of seasons)**, 72+ rarer still (≈0.1-0.9%), and 76-78 only
+   ever appear for god-tier builds and even then on a hot-streak roll (≤0.1%).
 4. **Playoff qualification** = Based on win total vs conference threshold
 5. **Playoff rounds** = Series-by-series, based on team strength differentials
 6. **Finals** = If reached, win/loss based on team strength + **Clutch bonus**
@@ -103,15 +109,23 @@ The league consists of 30 teams divided into 2 conferences of 15.
 - League-average thresholds for scoring/assist/rebound titles are static constants (e.g., 28 PPG for scoring title) with small year-to-year variance (±1-2).
 - Playoffs use a simplified 8-team bracket per conference. Seeding is based on win total within the conference.
 
-### Playoff Round Probabilities
+### Playoff Round Probabilities (two-axis difficulty model)
 
-For playoff rounds 1-3 (Conference playoffs):
+The engine separates **how many rings** (driven by OVR) from **whether you go 12-0** (driven by
+clutch). See `docs/BALANCE_2K.md` §6 for the full rationale + measured rates.
+
 ```javascript
-seriesWinProb = 0.5 + ((ourTeamStrength - oppTeamStrength) * 0.02)
+seriesWinProb = clamp(0.5 + (ourStrength - oppStrength) * 0.045 + clutchBonus, 0.03, 0.99)
 ```
-*Example: +10 team strength difference yields a ~70% chance to win the series.*
 
-Clutch bonus only applies in the Finals (and optionally Conference Finals at half strength).
+- **Round opponents** `ROUND_OPP = [82, 85, 88, 86]` (R1, R2, ConfFinals, Finals) are set high on
+  purpose: **reaching** the Finals (3 wins vs strong fields) is the OVR-gated grind that limits how
+  many rings a career can pile up. A ~92-OVR build reaches the Finals about half its prime years
+  (~7 rings); a god build nearly every year.
+- **Rubber-band (Finals only):** `ROUND_RUBBER_GAP = [∞, ∞, ∞, 3]` — the Finals opponent floats up to
+  within 3 of the player's own strength, so the Finals is decided almost entirely by **clutch**, not a
+  strength edge. This is robust to future rating inflation.
+- **`clutchBonus`** applies in the Finals (and half in the Conference Finals) — see the table below.
 
 ---
 
@@ -169,19 +183,23 @@ per-franchise rating path for inspection (used by `career.test.ts`).
 
 ## Finals Probability & Clutch
 
-The **Clutch** attribute is the key differentiator for 12-0 runs:
+The **Clutch** attribute is the key differentiator for 12-0 runs. Because the Finals is rubber-banded
+to a near-peer opponent, clutch is *the* thing that wins it — and the curve is steep at the top:
 
-| Clutch Rating | Finals Win Probability Boost |
-|---------------|------------------------------|
-| 95-99 | +15% (Jordan mode) |
-| 85-94 | +10% |
-| 75-84 | +5% |
-| 65-74 | +0% (baseline) |
-| Below 65 | -5% (choke factor) |
+| Clutch | Finals win-prob bonus | Effect over a 12-ring career |
+|--------|----:|------|
+| 99 | +0.50 | near loss-free → ~90% 12-0 (god build) |
+| 97 | +0.40 | rarely drops a Finals |
+| 95 | +0.27 | drops ~1-2 Finals (12-0 ~1-in-7) |
+| 93 | +0.20 | drops ~2 Finals |
+| 90 | +0.15 | drops ~2-3 Finals |
+| 87 | +0.08 | — |
+| 83 | 0 | baseline |
+| 78 / 72 / lower | −0.08 / −0.16 / −0.24 | choke factor |
 
-A player with 99 Clutch on a heavily favored team might have 85% chance to win a Finals series. Same team with 65 Clutch might only have 65%.
-
-**This makes Clutch the most impactful category for achieving 12-0** — you need to win EVERY Finals you reach.
+**This makes Clutch the gate on 12-0** — a 90-95 clutch build can absolutely win 12 rings, but almost
+always with 1-3 Finals losses along the way. Only **97+ clutch** (on a build elite enough to reach the
+Finals a dozen times) goes truly perfect. You need to win EVERY Finals you reach.
 
 ---
 
@@ -271,14 +289,16 @@ Track at minimum:
 
 ## Difficulty Tuning
 
-**Target: 12-0 achievable ~1 in 5 games with near-perfect attributes.**
+**Two-axis target (calibrated 2026-06-10 against the real pool — see `BALANCE_2K.md` §6):**
 
-- With perfect rolls (every attribute 95+), 12-0 should happen ~20% of the time
-- With great rolls (average 90+), 12-0 should happen ~5-8% of the time
-- With good rolls (average 85+), 12-0 should be nearly impossible (<1%)
-- Typical outcomes for great builds: 4-10 championships, 1-3 Finals losses
-- **12 is the hard cap.** Max 12 championships. (Maybe 13 as ultra-rare easter egg)
-- 12-0 requires: great attributes + good franchise + high Clutch + some luck
+- **Rings ← OVR.** Optimal play (~92 OVR) averages **~7 rings** and reaches 12 about **20-24%** of the
+  time. A realistic 94-OVR build averages **~9 rings**.
+- **12-0 ← clutch.** A 94-OVR build with 95 clutch goes 12-0 only **~1-in-7** (it usually drops 1-2
+  Finals). A **god build** — elite at everything *and* ~99 clutch — goes 12-0 **~90%** of the time.
+- Average / poor play → **0-2 rings**; it stays a real failure floor.
+- **12 is the hard cap.** Max 12 championships.
+- 12-0 requires: elite attributes **and** 97+ Clutch **and** enough OVR to reach the Finals a dozen
+  times — i.e. a genuine god build, not just a good one.
 
 ### Legacy Tiers
 

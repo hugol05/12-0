@@ -139,6 +139,21 @@ data-source/
 
 ### 3. Normalization
 
+**Name joins (`normName`).** Cross-dataset joins lowercase + strip accents/punctuation but **preserve
+generational suffixes** (Jr./Sr./II/III/IV). Stripping them merged father/son pairs into one
+frankenstein entity (Larry Nance + Larry Nance Jr. on the 2020s Pelicans with the father's box score;
+also the Hardaways, Paytons, Jaren Jacksons). Rare cross-source suffix mismatches are handled by
+`player-aliases.json`.
+
+**2020s re-anchor (real current rosters).** The box-score history ends in 2023, so a player's 2020s
+franchise tags were stale and the 2020s buckets were collapsing below the 10-player threshold (then
+getting resurrected with only patched-in rookies — LeBron vanished from the Lakers). Fix: for the
+**2020s decade only**, franchise membership is taken straight from the **current 2K roster**
+(`current_2k.csv` → real 2025-26 team), overriding box-score tags. So LeBron + Luka land on the
+Lakers, AD on Dallas, Curry/Butler/Draymond on the Warriors, etc. Read independent of `loadTwok`'s
+dedup (which may keep a star's higher-rated *all-time* card) via `loadCurrentTeams()`. 2020s buckets
+are exempt from the size threshold (real rosters are always full NBA teams).
+
 Normalize raw source data into stable internal tables:
 
 - `players.normalized.json`
@@ -174,19 +189,23 @@ Ratings come from **two tiers**, in priority order:
 |----------|---------|
 | Shooting | **Pure jump shot:** `0.45·three_point + 0.25·mid_range + 0.20·free_throw + 0.10·shot_iq`. Inside finishing is deliberately *not* shooting (so non-shooting bigs fall, snipers rise). |
 | Athleticism | `0.70·athleticism_group + 0.15·driving_dunk + 0.15·standing_dunk` — explosive **inside finishing** folds in here (no scoring slot for it otherwise). |
-| Playmaking / Defense / Rebounding | The matching 2K group, 1:1. |
+| Playmaking / Rebounding | The matching 2K group, 1:1. |
+| Defense | **Not** `group_defense` 1:1 — that composite buries elite rim protectors who have weak steals/perimeter (Gobert's group is 78 despite 95 interior / 80 block). Instead: `0.40·group_defense + 0.30·max(interior_defense, perimeter_defense) + 0.18·block + 0.12·help_defense_iq`. The `max(interior, perimeter)` anchors on the player's *strong* end so neither a rim protector nor a point-of-attack stopper is dragged by their off-position. Lifts true anchors (Gobert→95, Mobley/JJJ→88) without inflating non-defenders (Zion stays ~60 — 2K genuinely rates his interior D mediocre). |
 | Basketball IQ | `0.40·pass_iq + 0.30·shot_iq + 0.30·help_defense_iq`. |
 | Durability | `overall_durability`, 1:1. |
+| Position | The 2K card's `position_1` (+ `position_2` if distinct), **preferred over** the box-score/Brescou position, which is often wrong for the fan (Zion shipped as SF; 2K lists him PF/C). |
 | Height/Wingspan | See below. |
 | Clutch | Not a 2K attribute — **derived** (see below). |
 
 **Clutch** (star tier + championship-aware): `base = (overall−50)/49·37 + 55 + (intangibles−70)·0.06`, plus `min(rings,6)·1.8`. Ring counts + big-shot legends live in `data-source/curated/clutch.json`. A **ringless** player is capped at 88 (a star who never won — Westbrook, Harden, Malone — cannot reach 90), while curated **legends** (Lillard, Reggie, Haliburton, Jordan, Curry, Kobe, Bird, Magic, Kawhi, Russell…) are floored at 93 regardless of rings.
 
+**Legend floor (all-time cards only).** The .20 shooting weight in the OVR formula drags non-shooting greats down (Wilt/Russell computed ~79-80 from their poor jump shot). When a player matched to an **all-time** 2K card computes below `2K overall − 12` (capped at 92), their skill ratings are scaled up proportionally to that floor — so a famous name can't read embarrassingly low (Wilt→86, Russell→83, Iverson→84). Gated to all-time cards so a *current* card's potential-inflated rookie overall (Cooper Flagg, Ace Bailey) doesn't get a bogus lift.
+
 **Height/Wingspan** (anchored, owner-specified): `pure = inches≥84 ? 90 + 1.5·(inches−84) : 90 − 2·(84−inches)` then `+ clamp((wingspan−height−4)·0.6, 0, 5)` (wingspan only adds). So the tallest player in any dataset (7'6") = **99**, every 7-footer ≥ **90**, 6'9" ≈ **84**, and a freak wingspan (Gobert) rises. **Height is hidden from the user as a number** — the UI shows the real listed height and folds size into the player's archetype (`src/lib/archetype.ts`); it still feeds OVR (.08).
 
 #### Box-score fallback formulas
 
-Used only for players not in the 2K set (then OVR-capped). Inputs are a **prime-weighted** representative line: token/rookie/decline seasons (< half a player's peak-minutes season) are dropped and the biggest seasons emphasised (minutes^1.3). Each metric is percentile-ranked within the player's peak decade, mapped to 0-99 via `rate(p) = clamp(round(36 + 63·p^1.25), 25, 99)`, then skill ratings take an **era-strength discount** by peak decade (`1940s −6 … 2000s+ 0`; height/durability exempt).
+Used only for players not in the 2K set (then OVR-capped). Inputs are a **prime-weighted** representative line: token/rookie/decline seasons (< half a player's peak-minutes season) are dropped and the biggest seasons emphasised (minutes^1.3). Each metric is percentile-ranked within the player's peak decade, mapped to 0-99 via `rate(p) = clamp(round(36 + 63·p^1.25), 25, 99)`, then skill ratings take an **era-strength discount** by peak decade (`1940s −4, 1950s −3, 1960s −2, 1970s −2.5, 1980s −1, 1990s −0.5, 2000s+ 0`; height/durability exempt — softened 2026-06-10 so old-era role players aren't over-punished now that marquee legends get 2K cards + the legend floor).
 
 | Rating | Formula source (as implemented in `scripts/data/build.ts`) | Override allowed? | Confidence rule |
 |--------|----------------|-------------------|-----------------|

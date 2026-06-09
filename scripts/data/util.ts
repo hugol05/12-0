@@ -55,13 +55,18 @@ export function sha256(value: string): string {
   return createHash('sha256').update(value).digest('hex').slice(0, 16);
 }
 
-/** Normalise a player name for cross-dataset joins (lowercase, strip accents/punctuation/suffixes). */
+/**
+ * Normalise a player name for cross-dataset joins (lowercase, strip accents/punctuation).
+ * Generational suffixes (Jr./Sr./II/III/IV) are PRESERVED as tokens \u2014 stripping them merged
+ * father/son pairs (Larry Nance + Larry Nance Jr., Gary Payton + Gary Payton II, the Jaren
+ * Jacksons, etc.) into a single frankenstein entity. Modern datasets spell the suffix
+ * consistently; the rare cross-source mismatch is handled by player-aliases.json.
+ */
 export function normName(raw: string): string {
   return raw
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-    .replace(/\bjr\b|\bsr\b|\biii\b|\bii\b|\biv\b/g, '')
     .replace(/[^a-z ]/g, '')
     .replace(/\s+/g, ' ')
     .trim();

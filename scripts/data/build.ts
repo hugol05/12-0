@@ -18,7 +18,7 @@ import {
   CURATED_DIR, OUT_DIR, ROOT, fetchCached, parseCsv, readJson, writeJson, sha256,
   normName, toNum, pctToFrac, decadeOf, clamp, percentileRanker,
 } from './util.ts';
-import { loadTwok, mapSkills, heightRating, clutchRating, type ClutchConfig } from './twok.ts';
+import { loadTwok, loadCurrentTeams, mapSkills, heightRating, clutchRating, type ClutchConfig } from './twok.ts';
 
 const RAW_HIST = 'https://raw.githubusercontent.com/peasant98/TheNBACSV/master/nbaNew.csv';
 const BRESCOU = 'https://raw.githubusercontent.com/Brescou/NBA-dataset-stats-player-team/main/player';
@@ -77,7 +77,7 @@ const POS_HEIGHT: Record<Pos, number> = { PG: 73, SG: 77, SF: 80, PF: 82, C: 84 
 // merely-very-good role players (Alvan Adams, Bob Lanier) drop to where they belong. Height and
 // durability are NOT era-adjusted (a 7-footer is 7 feet in any era; longevity is era-neutral).
 const ERA_PEN: Record<string, number> = {
-  '1940s': 6, '1950s': 4.5, '1960s': 3, '1970s': 4, '1980s': 1.5, '1990s': 0.5,
+  '1940s': 4, '1950s': 3, '1960s': 2, '1970s': 2.5, '1980s': 1, '1990s': 0.5,
   '2000s': 0, '2010s': 0, '2020s': 0,
 };
 
@@ -128,6 +128,20 @@ async function main(): Promise<void> {
   const codeToFranchise = new Map<string, string>();
   for (const f of franchiseDoc.franchises) for (const c of f.teamCodes) codeToFranchise.set(c, f.id);
   const excluded = new Set([...franchiseDoc.excludeCodes, ...Object.keys(franchiseDoc.defunctCodes)]);
+
+  // Map a 2K full team name -> franchise id (used both to re-anchor 2020s rosters and to add new players).
+  const nameToFr = new Map<string, string>();
+  for (const f of franchiseDoc.franchises) nameToFr.set(f.name.toLowerCase(), f.id);
+  nameToFr.set('los angeles clippers', 'LAC'); // 2K uses the full name; franchise is "LA Clippers"
+  // 2020s re-anchor: every current 2K player's REAL 2025-26 team (by canonical key). The box-score
+  // window ends in 2023, so a player's 2020s franchise tags are stale (and the 2020s buckets were
+  // collapsing below the size threshold). For the 2020s decade we take the team straight from the
+  // current 2K roster instead — so LeBron/Luka land on the Lakers, AD on Dallas, etc.
+  const currentFrByKey = new Map<string, string>();
+  for (const [key, teamName] of await loadCurrentTeams(aliasesDoc.aliases)) {
+    const fr = nameToFr.get(teamName.toLowerCase());
+    if (fr) currentFrByKey.set(key, fr);
+  }
 
   const players = new Map<string, Player>();
   const ensure = (name: string): Player => {
@@ -350,6 +364,7 @@ async function main(): Promise<void> {
     const tw = twokMap.get(a.p.key);
     let archetype: string | undefined;
     let wingspanIn: number | undefined;
+    const positions: Pos[] = [a.p.pos];
     const ratingMeta: Record<string, { confidence: string; sourceCoverage: string }> = {};
     if (tw) {
       twokMatched.add(a.p.key);
@@ -358,6 +373,12 @@ async function main(): Promise<void> {
       ratings.height = heightRating(a.p.heightIn, tw.wingspanIn);
       wingspanIn = tw.wingspanIn;
       archetype = tw.archetype || undefined;
+      // Positions: prefer the 2K card. The box-score/Brescou position is often wrong for the fan
+      // (Zion shipped as SF; 2K lists him PF/C). Use position_1 as primary + position_2 if distinct.
+      positions[0] = parsePos(tw.position1);
+      const p2 = tw.position2 ? parsePos(tw.position2) : undefined;
+      if (p2 && p2 !== positions[0]) positions.push(p2);
+      a.p.pos = positions[0];
       // hand-rated values — no box-score proxy caveats
     } else {
       if (!has3pt) ratingMeta.shooting = { confidence: 'medium', sourceCoverage: 'partial' };
@@ -391,19 +412,44 @@ async function main(): Promise<void> {
           teams: [...a.franDecades.keys()].join('/'),
         });
       }
+    } else if (tw.source === 'all-time') {
+      // Legend floor: when the OVR formula under-rates a 2K-rated great (the .20 shooting weight
+      // drags non-shooting bigs like Wilt/Russell down), lift their skill ratings proportionally so
+      // the OVR can't read embarrassingly low. Tied to 2K's own overall (trust 2K): floor ≈ 2K
+      // overall − 12, capped at 92 so the floor alone never manufactures a 95+ player. Gated to
+      // ALL-TIME cards only — a current card's "overall" is potential-inflated for rookies (Cooper
+      // Flagg, Ace Bailey), which would otherwise get a huge bogus lift.
+      const floor = clamp(Math.round(tw.overall - 12), 25, 92);
+      if (computeOvr(ratings) < floor) {
+        const hPart = ratings.height * OVR_WEIGHTS.height;
+        const skillPart = SKILL_CATS.reduce((s, c) => s + ratings[c] * OVR_WEIGHTS[c], 0);
+        const factor = skillPart > 0 ? (floor - hPart) / skillPart : 1;
+        for (const c of SKILL_CATS) ratings[c] = clamp(Math.round(ratings[c] * factor), 25, 99);
+      }
     }
 
-    // teams + buckets
+    // teams + buckets. The 2020s decade is re-anchored to the real current roster (see
+    // currentFrByKey) — so box-score 2020s tags are dropped here and the current 2K team added below.
+    const currentFr = currentFrByKey.get(a.p.key);
     const teams: { franchise: string; decades: string[] }[] = [];
     for (const [fr, dm] of a.franDecades) {
-      const qualified = [...dm.entries()].filter(([, c]) => c >= MIN_FRANCHISE_DECADE_SEASONS).map(([d]) => d);
-      const allDecades = [...dm.keys()];
+      const qualified = [...dm.entries()].filter(([d, c]) => d !== '2020s' && c >= MIN_FRANCHISE_DECADE_SEASONS).map(([d]) => d);
+      const allDecades = [...dm.keys()].filter((d) => d !== '2020s');
       if (allDecades.length) teams.push({ franchise: fr, decades: allDecades.sort() });
       for (const dec of qualified) {
         const bk = `${fr}|${dec}`;
         (buckets.get(bk) ?? buckets.set(bk, new Set()).get(bk)!).add(id);
         (franchiseDecades.get(fr) ?? franchiseDecades.set(fr, new Set()).get(fr)!).add(dec);
       }
+    }
+    // 2020s = the real current roster (from the current 2K dataset), overriding the stale box-score window.
+    if (currentFr) {
+      const existing = teams.find((t) => t.franchise === currentFr);
+      if (existing) { if (!existing.decades.includes('2020s')) { existing.decades.push('2020s'); existing.decades.sort(); } }
+      else teams.push({ franchise: currentFr, decades: ['2020s'] });
+      const bk = `${currentFr}|2020s`;
+      (buckets.get(bk) ?? buckets.set(bk, new Set()).get(bk)!).add(id);
+      (franchiseDecades.get(currentFr) ?? franchiseDecades.set(currentFr, new Set()).get(currentFr)!).add('2020s');
     }
     if (teams.length === 0) { usedIds.delete(id); continue; }
 
@@ -412,7 +458,7 @@ async function main(): Promise<void> {
       : { url: FALLBACK_PHOTO, status: 'fallback', fallback: FALLBACK_PHOTO };
 
     outPlayers.push({
-      id, name: a.p.name, positions: [a.p.pos], teams,
+      id, name: a.p.name, positions, teams,
       peakSeason: `${a.primaryYear}-${String((a.primaryYear + 1) % 100).padStart(2, '0')}`,
       stats: {
         ppg: round1(a.rep.ppg), rpg: round1(a.rep.rpg), apg: round1(a.rep.apg),
@@ -430,14 +476,69 @@ async function main(): Promise<void> {
   const keptIds = new Set<string>();
   const bucketList: { franchise: string; decade: string; playerIds: string[] }[] = [];
   for (const [bk, set] of [...buckets].sort()) {
-    if (set.size < MIN_BUCKET_PLAYERS) continue;
     const [franchise, decade] = bk.split('|');
+    // 2020s buckets are real current rosters (always full NBA teams) — exempt from the size threshold
+    // so a team isn't dropped and then resurrected containing only the patched-in rookies.
+    if (decade !== '2020s' && set.size < MIN_BUCKET_PLAYERS) continue;
     const ids = [...set].sort();
     bucketList.push({ franchise, decade, playerIds: ids });
     for (const id of ids) keptIds.add(id);
   }
   // drop players that ended up in no surviving bucket
-  const finalPlayers = (outPlayers as { id: string }[]).filter((p) => keptIds.has(p.id));
+  const finalPlayers = (outPlayers as { id: string; name: string }[]).filter((p) => keptIds.has(p.id));
+
+  // ---- add current 2K players absent from the shipped roster, as 2020s players ----
+  // Real current NBA players the box-score history doesn't reach (2023-25 debuts) OR that matched a
+  // box-score record which didn't qualify for a bucket (e.g. Cade Cunningham, one Detroit season).
+  // Gated on the SHIPPED roster (not just "matched"), so we never duplicate a player who already
+  // shipped — all-time names that map to an existing entry are handled by aliases instead.
+  const shippedKeys = new Set(finalPlayers.map((p) => normName(p.name)));
+  const has2kGroups = (raw: Record<string, string>) =>
+    ['group_outside_scoring', 'group_playmaking', 'group_defense', 'group_rebounding'].every((k) => (raw[k] ?? '').trim() !== '');
+  const addedReport: { name: string; ovr: number; team: string; archetype: string; photo: boolean }[] = [];
+  for (const [key, tw] of twokMap) {
+    if (shippedKeys.has(key)) continue;            // already on the roster — never duplicate
+    if (tw.source !== 'current' || tw.team.startsWith('All-Time')) continue; // 2020s players only
+    if (!has2kGroups(tw.raw)) continue;            // skip incomplete rows (e.g. a not-yet-rated rookie)
+    const frId = nameToFr.get(tw.team.toLowerCase());
+    if (!frId) continue;
+    const idxP = players.get(key); // player_index entry (real personId/height) if present
+    const personId = idxP?.personId && /^\d+$/.test(idxP.personId) ? idxP.personId : undefined;
+    const heightIn = idxP && !idxP.heightEstimated ? idxP.heightIn : tw.heightIn;
+
+    const ratings: Record<string, number> = {
+      ...mapSkills(tw.raw),
+      height: heightRating(heightIn, tw.wingspanIn),
+      clutch: clutchRating(tw.name, tw.overall, tw.intangibles, clutchCfg),
+    };
+    let id = personId ?? `t${sha256(key)}`;
+    while (usedIds.has(id)) id = `${id}_`;
+    usedIds.add(id);
+
+    const photo = personId
+      ? { url: `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`, status: 'verified', fallback: FALLBACK_PHOTO }
+      : { url: FALLBACK_PHOTO, status: 'fallback', fallback: FALLBACK_PHOTO };
+
+    finalPlayers.push({
+      id, name: tw.name, positions: [parsePos(tw.position1)],
+      teams: [{ franchise: frId, decades: ['2020s'] }],
+      peakSeason: '2025-26',
+      stats: synthStats(tw.raw), // estimated from 2K attributes (no box score for these players)
+      ratings, ratingMeta: {},
+      height: `${Math.floor(heightIn / 12)}-${heightIn % 12}`,
+      ...(tw.wingspanIn ? { wingspan: `${Math.floor(tw.wingspanIn / 12)}-${tw.wingspanIn % 12}` } : {}),
+      ...(tw.archetype ? { archetype: tw.archetype } : {}),
+      photo,
+    } as never);
+    shippedKeys.add(key);
+    keptIds.add(id);
+    let bucket = bucketList.find((b) => b.franchise === frId && b.decade === '2020s');
+    if (!bucket) { bucket = { franchise: frId, decade: '2020s', playerIds: [] }; bucketList.push(bucket); }
+    bucket.playerIds.push(id);
+    addedReport.push({ name: tw.name, ovr: computeOvr(ratings), team: tw.team, archetype: tw.archetype, photo: !!personId });
+  }
+  for (const b of bucketList) b.playerIds.sort();
+  bucketList.sort((a, b) => (a.franchise + a.decade).localeCompare(b.franchise + b.decade));
 
   // ---- franchises (public) with derived decades (only decades that survived as buckets) ----
   const survivingFranDecades = new Map<string, Set<string>>();
@@ -471,9 +572,9 @@ async function main(): Promise<void> {
   const keptKeys = new Set(finalPlayers.map((p) => normName((p as { name: string }).name)));
   const shippedCapped = cappedReport.filter((c) => keptIds.has(c.id)).sort((x, y) => y.oldOvr - x.oldOvr);
   const matchedShipped = [...twokMatched].filter((k) => keptKeys.has(k)).length;
-  // 2K players never matched to a shipped roster player (candidates to add later, by overall).
+  // 2K players that did NOT end up on the shipped roster (mostly all-time/ABA names with no match).
   const unmatched2k = [...twokMap.entries()]
-    .filter(([k]) => !twokMatched.has(k))
+    .filter(([k]) => !keptKeys.has(k))
     .map(([, v]) => v)
     .sort((x, y) => y.overall - x.overall);
   const reportLines: string[] = [];
@@ -491,17 +592,41 @@ async function main(): Promise<void> {
   reportLines.push('These are rated by 2K but absent from the box-score history (mostly 2023-25 debuts), so they have no franchise/decade buckets. Candidates to add as 2020s players if you want them playable.', '');
   reportLines.push('| OVR | Name | Pos | 2K team | Archetype |', '|----|------|-----|---------|-----------|');
   for (const v of unmatched2k) if (v.overall >= 82) reportLines.push(`| ${v.overall} | ${v.name} | ${v.position1} | ${v.team} | ${v.archetype} |`);
+  reportLines.push('', `## Added 2020s players (${addedReport.length})`, '');
+  reportLines.push('Real current players absent from the box-score history, added with 2K ratings on their current team (2020s). Stats are estimated from 2K attributes (no box score exists for them). A ✓ in Photo means a real headshot was found.', '');
+  reportLines.push('| OVR | Name | Team | Archetype | Photo |', '|----|------|------|-----------|-------|');
+  for (const v of [...addedReport].sort((a, b) => b.ovr - a.ovr)) reportLines.push(`| ${v.ovr} | ${v.name} | ${v.team} | ${v.archetype} | ${v.photo ? '✓' : '—'} |`);
   await writeFile(join(ROOT, 'data-source', '2k', 'integration-report.md'), reportLines.join('\n') + '\n', 'utf8');
 
   console.log(`players: ${finalPlayers.length} (of ${outPlayers.length} pre-bucket-filter)`);
   console.log(`buckets >= ${MIN_BUCKET_PLAYERS}: ${bucketList.length}`);
   console.log(`franchises with buckets: ${outFranchises.length}`);
-  console.log(`2K-rated (shipped): ${matchedShipped} | capped: ${shippedCapped.length} | 2K-unmatched: ${unmatched2k.length}`);
+  console.log(`2K-rated (shipped): ${matchedShipped} | capped: ${shippedCapped.length} | 2K-unmatched: ${unmatched2k.length} | added-2020s: ${addedReport.length}`);
   console.log(`report: data-source/2k/integration-report.md`);
   console.log(`dataVersion: ${dataVersion}`);
 }
 
 function round1(n: number): number { return Math.round(n * 10) / 10; }
 function round3(n: number): number { return Math.round(n * 1000) / 1000; }
+
+/**
+ * Approximate per-game stats from a 2K attribute row, for current players that have no box-score
+ * line. Display-only (the simulation runs off the built player's ratings, not these) — a rough but
+ * plausible card so an added 2020s player doesn't read 0/0/0.
+ */
+function synthStats(raw: Record<string, string>): { ppg: number; rpg: number; apg: number; spg: number; bpg: number; tsPct: number } {
+  const n = (k: string) => { const v = Number(raw[k]); return Number.isFinite(v) ? v : 0; };
+  const m = (raw.height_feet ?? '').match(/(\d+)\D+(\d+)/);
+  const hin = m ? Number(m[1]) * 12 + Number(m[2]) : 78;
+  const score = Math.max(n('group_outside_scoring'), n('group_inside_scoring'));
+  return {
+    ppg: clamp(round1((score - 50) * 0.40 + (n('overall') - 70) * 0.25 + 7), 2, 32),
+    rpg: clamp(round1((n('group_rebounding') - 40) * 0.16 + (hin - 74) * 0.18 + 1.2), 0.5, 14),
+    apg: clamp(round1((n('group_playmaking') - 40) * 0.13 + 0.4), 0.3, 11),
+    spg: clamp(round1((n('group_defense') - 50) * 0.025 + 0.4), 0.1, 2.6),
+    bpg: clamp(round1((n('block') - 50) * 0.03 + (hin - 80) * 0.04 + 0.2), 0, 3.2),
+    tsPct: round3(clamp(0.50 + (n('free_throw') - 70) * 0.0008 + (n('group_inside_scoring') - 60) * 0.0007, 0.45, 0.66)),
+  };
+}
 
 main().catch((e) => { console.error(e); process.exit(1); });

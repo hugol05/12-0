@@ -9,8 +9,17 @@ import type {
 // ---- tunable constants (calibrated via career.test.ts Monte Carlo) ----
 const START_AGE = 19;
 const PLAYOFF_WIN_THRESHOLD = 42;
-const SERIES_COEFF = 0.05; // strength delta -> series prob
-const ROUND_OPP = [66, 73, 78, 82]; // R1, R2, ConfFinals, Finals baseline opponent strength
+const SERIES_COEFF = 0.045; // strength delta -> series prob
+// Opponents climb toward the player's strength each round. They're set HIGH on purpose: REACHING
+// the Finals (winning 3 prior rounds vs strong fields) is the OVR-gated grind that decides how many
+// rings a career can pile up — a ~92-OVR build reaches the Finals about half its prime years (≈7
+// titles), a god build nearly every year. This is the "total rings" axis (driven by OVR).
+const ROUND_OPP = [82, 85, 88, 86]; // R1, R2, ConfFinals, Finals baseline opponent strength
+// Rubber-band: in the FINALS the league's best "reload" to challenge a great player, so the
+// opponent floats up to within GAP of the player's own strength. The Finals is then decided almost
+// entirely by CLUTCH (the second axis): a 90-95 clutch still drops 1-3 Finals across a 12-ring
+// career, and only a 97+ clutch keeps you loss-free for a true 12-0. Robust to rating inflation.
+const ROUND_RUBBER_GAP = [Infinity, Infinity, Infinity, 3];
 const ROUND_STAGES = ['firstRound', 'confSemis', 'confFinals', 'finals'] as const; // round idx -> stage reached
 const TITLE_CAP = 12;
 
@@ -64,13 +73,20 @@ function retirementAge(durability: number): number {
   return 32;
 }
 
+// Clutch is THE separator for deep playoff runs. The curve is steep at the top: only a near-perfect
+// clutch rating pushes a Finals series toward the ~0.95 win-prob needed to string 12 titles together,
+// while a merely-very-good clutch (90) gets only a small nudge and a poor one is actively penalised.
 function clutchFinalsBonus(clutch: number): number {
-  if (clutch >= 95) return 0.18;
-  if (clutch >= 90) return 0.14;
-  if (clutch >= 85) return 0.1;
-  if (clutch >= 75) return 0.04;
-  if (clutch >= 65) return 0;
-  return -0.06;
+  if (clutch >= 99) return 0.50;
+  if (clutch >= 97) return 0.40;
+  if (clutch >= 95) return 0.27;
+  if (clutch >= 93) return 0.20;
+  if (clutch >= 90) return 0.15;
+  if (clutch >= 87) return 0.08;
+  if (clutch >= 83) return 0.0;
+  if (clutch >= 78) return -0.08;
+  if (clutch >= 72) return -0.16;
+  return -0.24;
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -81,14 +97,26 @@ function teamStrengthOf(franchiseBase: number, ovr: number): number {
   return franchiseBase * 0.4 + ovr * 0.6;
 }
 
+// Regular-season wins as a smooth, saturating function of team strength — no hard cap, and
+// crucially NO floor of 70 for champions. Most title teams (real NBA history included) win in the
+// 50s-low 60s; the tanh baseline saturates around there even for elite strength. A 70-win season is
+// an ELITE outlier, 72 rarer still, and only a truly god-tier build (strength ~95+) can ever flirt
+// with the high 70s — and even then only on a "career year" roll, not as the norm.
 function winsFromStrength(strength: number, rng: SeededRng): number {
-  const expected = (strength - 40) * 1.35 + 8;
-  const variance = rng.range(-6, 6);
-  return Math.max(12, Math.min(73, Math.round(expected + variance)));
+  const expected = 50 + 14 * Math.tanh((strength - 82) / 14);
+  const variance = rng.range(-7, 7);
+  // Rare "career year": occasionally a strong team catches fire for a 70s-win season. The ceiling
+  // scales with strength, so only elite builds can ever approach the high 70s, and it's a tail event.
+  let bonus = 0;
+  if (rng.chance(0.10)) {
+    const ceiling = clamp((strength - 78) / 1.8, 0, 12);
+    bonus = rng.range(0, ceiling);
+  }
+  return clamp(Math.round(expected + variance + bonus), 15, 82);
 }
 
 function seriesWinProb(our: number, opp: number, clutchBonus: number): number {
-  return Math.max(0.03, Math.min(0.985, 0.5 + (our - opp) * SERIES_COEFF + clutchBonus));
+  return Math.max(0.03, Math.min(0.99, 0.5 + (our - opp) * SERIES_COEFF + clutchBonus));
 }
 
 function generateStats(ratings: Ratings, form: number, rng: SeededRng): SeasonStatLine {
@@ -209,7 +237,8 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
         const isFinals = round === 3;
         const isConfFinals = round === 2;
         const bonus = isFinals ? clutchFinalsBonus(clutch) : isConfFinals ? clutchFinalsBonus(clutch) / 2 : 0;
-        const opp = clamp(ROUND_OPP[round] + rng.range(-3, 3), 55, 95);
+        const oppBase = Math.max(ROUND_OPP[round], strength - ROUND_RUBBER_GAP[round]);
+        const opp = clamp(oppBase + rng.range(-3, 3), 55, 99);
         const prob = seriesWinProb(strength, opp, bonus);
         roundReached = ROUND_STAGES[round]; // reached/playing this round
         if (isFinals) madeFinals = true;
