@@ -97,7 +97,7 @@ export default function Preview() {
 
       <div className="preview__durability">
         <div className="preview__durability-head">
-          <span>🏋️ Durability — career fuel</span>
+          <span>🏋️ Durability — years in the tank</span>
           <span className="preview__durability-val">{ratings.durability}</span>
         </div>
         <div className="fuel"><div className="fuel__fill" style={{ width: `${ratings.durability}%` }} /></div>

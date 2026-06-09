@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Clock, Lock } from 'lucide-react';
 import type { Difficulty } from '@/types';
 import { useGameStore } from '@/store/gameStore';
+import { loadFranchises, loadPlayers, loadRollIndex } from '@/data/loadGameData';
 import { Onboarding, hasSeenOnboarding } from '@/components/Onboarding';
 import { cardReveal, staggerContainer } from '@/lib/motion';
 import './Home.css';
@@ -49,6 +50,15 @@ export default function Home() {
   const setDifficulty = useGameStore((s) => s.setDifficulty);
   const reset = useGameStore((s) => s.reset);
   const [showOnboarding, setShowOnboarding] = useState(() => !hasSeenOnboarding());
+
+  // Warm the roster cache in the background while the player reads the home
+  // screen / onboarding, so the Build screen has data ready (no "Loading
+  // rosters…" wait). loadGameData caches each promise, so useGameData on /build
+  // reuses these fetches instead of starting over. Fire-and-forget; errors are
+  // surfaced later by useGameData on the screen that actually needs the data.
+  useEffect(() => {
+    void Promise.allSettled([loadRollIndex(), loadFranchises(), loadPlayers()]);
+  }, []);
 
   function start() {
     reset();

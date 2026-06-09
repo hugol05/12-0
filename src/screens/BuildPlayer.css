@@ -12,14 +12,16 @@
 .muted { color: var(--text-secondary); font-size: var(--text-sm); }
 
 /* ── header / progress ─────────────────────────────────────── */
-.build__head { display: flex; align-items: center; justify-content: space-between; }
+/* keep the right end clear of the fixed global Home button (top-right) */
+.build__head { display: flex; align-items: center; justify-content: space-between; padding-right: 46px; }
 .build__progress { display: flex; gap: 5px; }
 .dot { width: 9px; height: 9px; border-radius: var(--radius-full); background: var(--bg-elevated); border: 1px solid var(--border-subtle); transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
 .dot--done { background: var(--gold-primary); border-color: var(--gold-primary); box-shadow: var(--shadow-gold); }
 .build__count { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--weight-bold); }
 .build__count span { color: var(--text-tertiary); font-weight: var(--weight-regular); }
 
-.build__stage { margin: var(--space-1) 0; }
+/* extra top gap so the top row of rings clears the fixed global Home button */
+.build__stage { margin: var(--space-4) 0 var(--space-1); }
 
 /* ── roll (team + era) — smooth, always visible ─────────────── */
 .roll2 {
@@ -120,39 +122,44 @@
 .reroll:hover:not(:disabled) { border-color: var(--gold-primary); color: var(--gold-primary); }
 .reroll:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ── franchise-phase roll call-to-action ────────────────────── */
-.rollcta {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-5) var(--space-4);
+/* ── franchise-phase intro (before the team is rolled) ──────── */
+/* One clean, generously-padded card — no nested boxes, no thrice-repeated
+   "starting franchise". */
+.franpanel.franpanel--intro {
+  width: 100%;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-6);
   background: var(--gradient-surface);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--gold-soft);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-card);
-  width: 100%;
 }
-.rollcta__hint { font-size: var(--text-sm); color: var(--text-secondary); text-align: center; max-width: 34ch; }
-.rollcta__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-6);
+.franpanel__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+.franpanel__lead { font-size: var(--text-sm); color: var(--text-secondary); text-align: center; max-width: 32ch; line-height: 1.5; }
+.franpanel__roll {
+  margin-top: var(--space-2);
+  padding: var(--space-4) var(--space-8);
+  width: 100%;
+  max-width: 280px;
   background: var(--gradient-gold);
   border: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   color: var(--bg-void);
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
   font-size: var(--text-lg);
+  letter-spacing: var(--tracking-wide);
   cursor: pointer;
   box-shadow: var(--shadow-gold);
   transition: transform var(--dur-instant) var(--ease-out);
 }
-.rollcta__btn span { font-family: var(--font-mono); font-size: var(--text-xs); opacity: 0.7; }
-.rollcta__btn:hover:not(:disabled) { transform: translateY(-1px); }
-.rollcta__btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.franpanel__roll:hover:not(:disabled) { transform: translateY(-1px); }
+.franpanel__roll:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── player list ───────────────────────────────────────────── */
 .pick__controls { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
@@ -181,11 +188,24 @@
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
+  /* avoid the iOS tap-highlight flash + double-tap zoom on the list rows */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
 }
-.player:hover { border-color: var(--gold-primary); }
+/* Only show hover styling on real hover devices — on touch, :hover sticks after a
+   tap and made an un-selected row look selected (gold border without the glow). */
+@media (hover: hover) {
+  .player:hover { border-color: var(--gold-soft); }
+}
 .player:active { transform: scale(0.99); }
-.player--active { border-color: var(--gold-primary); background: var(--bg-elevated); box-shadow: var(--shadow-gold); }
+/* the genuinely-selected row: brighter than hover, with a gold inset rail so it's
+   unmistakably distinct from a stray hover/tap highlight */
+.player--active {
+  border-color: var(--gold-primary);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-gold), inset 3px 0 0 var(--gold-primary);
+}
 .player__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .player__name { font-weight: var(--weight-semibold); }
 .player__stats { font-size: var(--text-xs); color: var(--text-secondary); }

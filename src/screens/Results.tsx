@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Home } from 'lucide-react';
 import type { RatingCategory } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
 import { encodeBuild, shareUrl } from '@/share/shareLink';
+import { shareNodeAsImage } from '@/share/shareImage';
 import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { TeamBadge } from '@/components/TeamBadge';
 import { buildArchetype, formatHeight, nickname, parseHeightInches } from '@/lib/archetype';
@@ -23,9 +25,11 @@ export default function Results() {
   const seed = useGameStore((s) => s.seed);
   const franchise = useGameStore((s) => s.franchise);
   const assignments = useGameStore((s) => s.assignments);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  // The shared image is a dedicated compact card (rendered off-screen), not the
+  // full on-screen poster — so the export stays tight: record, OVR, archetype,
+  // awards, averages and the Built-With list only.
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const [shareState, setShareState] = useState<'idle' | 'working' | 'shared' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
     if (!result) navigate('/');
@@ -73,29 +77,33 @@ export default function Results() {
     return code ? shareUrl(code) : undefined;
   };
 
+  // Snapshot the poster (record + OVR + awards + Built-With) to a PNG and open the
+  // system share sheet so it can be posted to Twitter/X, Messages, etc. — falling
+  // back to a download when file-sharing isn't supported.
   const share = async () => {
-    const line = `I went ${finals.wins}–${finals.losses} in the Finals on 12-0. Legacy: ${legacyTier}.`;
+    if (!shareCardRef.current || shareState === 'working') return;
+    setShareState('working');
     const url = buildShareUrl();
-    const text = url ? `${line} Replay my exact run:` : line;
-    try {
-      if (navigator.share) await navigator.share({ title: '12-0', text, url });
-      else {
-        await navigator.clipboard.writeText(url ? `${text} ${url}` : text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1800);
-      }
-    } catch { /* user dismissed share sheet */ }
+    const line = `I went ${finals.wins}–${finals.losses} in the Finals on 12-0.`;
+    const slug = `12-0-${legacyTier.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    const res = await shareNodeAsImage(shareCardRef.current, {
+      fileName: slug,
+      title: '12-0',
+      text: url ? `${line} Replay my exact run: ${url}` : line,
+    });
+    if (res === 'shared') setShareState('shared');
+    else if (res === 'downloaded') setShareState('saved');
+    else if (res === 'error') setShareState('error');
+    else { setShareState('idle'); return; } // cancelled — no confirmation needed
+    setTimeout(() => setShareState('idle'), 2200);
   };
 
-  const copyLink = async () => {
-    const url = buildShareUrl();
-    if (!url) return;
-    try {
-      await navigator.clipboard.writeText(url);
-      setLinkCopied(true);
-      setTimeout(() => setLinkCopied(false), 1800);
-    } catch { /* clipboard unavailable */ }
-  };
+  const shareLabel =
+    shareState === 'working' ? 'Rendering…'
+    : shareState === 'shared' ? 'Shared!'
+    : shareState === 'saved' ? 'Image saved'
+    : shareState === 'error' ? 'Try again'
+    : 'Share image';
 
   return (
     <main className="results">
@@ -105,20 +113,23 @@ export default function Results() {
           <span className="poster__diff">{difficulty.toUpperCase()}</span>
         </header>
 
-        {/* hero — record + silhouette */}
+        {/* hero — record + OVR beside the silhouette (fills the right column) */}
         <div className="poster__hero">
           <PlayerSilhouette mode="poster" size="md" filled={filled} className="poster__fig" />
           <div className="poster__record-wrap">
             <span className="poster__record">{finals.wins}&ndash;{finals.losses}</span>
             <span className="poster__record-label">Finals Record</span>
+            {perfect && <span className="poster__broken">Record Broken</span>}
+            <div className="poster__ovr">
+              <span className="poster__ovr-num">{career.peakOvr}</span>
+              <span className="poster__ovr-label">Peak OVR</span>
+            </div>
           </div>
         </div>
 
         <div className="poster__name">
           <span className="poster__nick">{nick}</span>
           <span className="poster__archetype">{archetype} · {formatHeight(heightPlayer?.height)}</span>
-          <span className="poster__tier">{legacyTier}{perfect && ' · RECORD BROKEN'}</span>
-          <span className="poster__ovr">OVR <strong>{career.peakOvr}</strong></span>
         </div>
 
         {/* awards — clean count + label chips (no icons) */}
@@ -201,10 +212,10 @@ export default function Results() {
                 <li key={a.category} className="dna">
                   <span className="dna__cat">{CAT_LABEL[a.category]}</span>
                   <span className="dna__player">{playerName(a.playerId)}</span>
-                  <TeamBadge franchiseId={a.source.franchise} abbreviation={abbr(a.source.franchise)} name={teamName(a.source.franchise)} size="sm" className="dna__badge" />
                   <span className="dna__rating">
                     {a.category === 'height' ? formatHeight(data?.playersById.get(a.playerId)?.height) : a.rating}
                   </span>
+                  <TeamBadge franchiseId={a.source.franchise} abbreviation={abbr(a.source.franchise)} name={teamName(a.source.franchise)} size="sm" className="dna__badge" />
                 </li>
               ))}
           </ul>
@@ -214,18 +225,20 @@ export default function Results() {
       </article>
 
       <div className="results__actions">
-        <button className="cta" onClick={share}>{copied ? 'Copied!' : 'Share'}</button>
-        <button className="ghost" onClick={copyLink}>{linkCopied ? 'Link copied!' : 'Link'}</button>
-      </div>
-      <div className="results__actions">
-        <button className="ghost" onClick={playAgain}>Play Again</button>
-        <button className="ghost" onClick={goHome}>Back to Home</button>
+        <button className="results__share" onClick={share} disabled={shareState === 'working'}>
+          {shareLabel}
+        </button>
+        <div className="results__actions-row">
+          <button className="results__again" onClick={playAgain}>Build another</button>
+          <button className="results__home" onClick={goHome} aria-label="Back to home">
+            <Home size={18} aria-hidden="true" strokeWidth={2.25} />
+          </button>
+        </div>
       </div>
 
-      <button className="results__archive-toggle" onClick={() => setArchiveOpen((v) => !v)}>
-        Season archive {archiveOpen ? '▲' : '▼'}
-      </button>
-      {archiveOpen && (
+      {/* full season-by-season log — always shown */}
+      <section className="results__archive">
+        <h3 className="results__archive-title">Season Archive</h3>
         <ul className="archive">
           {seasons.map((s) => (
             <li key={s.seasonIndex} className={`archive__row ${s.wonChampionship ? 'archive__row--ring' : ''}`}>
@@ -237,7 +250,64 @@ export default function Results() {
             </li>
           ))}
         </ul>
-      )}
+      </section>
+
+      {/* ── compact share card (rendered off-screen, snapshotted by Share) ── */}
+      <div ref={shareCardRef} className={`sharecard ${perfect ? 'sharecard--perfect' : ''}`} aria-hidden="true">
+        <div className="sharecard__head">
+          <span className="poster__brand">12&ndash;0</span>
+          <span className="poster__diff">{difficulty.toUpperCase()}</span>
+        </div>
+
+        <div className="sharecard__hero">
+          <PlayerSilhouette mode="poster" size="sm" filled={filled} />
+          <div className="sharecard__rec">
+            <span className="poster__record">{finals.wins}&ndash;{finals.losses}</span>
+            <span className="poster__record-label">Finals Record</span>
+            {perfect && <span className="poster__broken">Record Broken</span>}
+            <div className="poster__ovr">
+              <span className="poster__ovr-num">{career.peakOvr}</span>
+              <span className="poster__ovr-label">Peak OVR</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="poster__name">
+          <span className="poster__nick">{nick}</span>
+          <span className="poster__archetype">{archetype} · {formatHeight(heightPlayer?.height)}</span>
+        </div>
+
+        <div className="poster__awards">
+          {career.championships > 0 && <Award count={career.championships} label="Rings" />}
+          {career.mvps > 0 && <Award count={career.mvps} label="MVP" />}
+          {career.finalsMvps > 0 && <Award count={career.finalsMvps} label="Finals MVP" />}
+          {career.dpoys > 0 && <Award count={career.dpoys} label="DPOY" />}
+          {career.allStars > 0 && <Award count={career.allStars} label="All-Star" />}
+        </div>
+
+        <div className="poster__avg">
+          <Avg v={avg.ppg} l="PPG" /><Avg v={avg.rpg} l="RPG" /><Avg v={avg.apg} l="APG" />
+          <Avg v={avg.spg} l="SPG" /><Avg v={avg.bpg} l="BPG" />
+        </div>
+
+        <ul className="poster__dna sharecard__dna">
+          {assignments
+            .filter((a) => a.category !== 'durability')
+            .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category))
+            .map((a) => (
+              <li key={a.category} className="dna">
+                <span className="dna__cat">{CAT_LABEL[a.category]}</span>
+                <span className="dna__player">{playerName(a.playerId)}</span>
+                <span className="dna__rating">
+                  {a.category === 'height' ? formatHeight(data?.playersById.get(a.playerId)?.height) : a.rating}
+                </span>
+                <TeamBadge franchiseId={a.source.franchise} abbreviation={abbr(a.source.franchise)} name={teamName(a.source.franchise)} size="sm" className="dna__badge" />
+              </li>
+            ))}
+        </ul>
+
+        <div className="sharecard__foot">Built on 12-0 · Started on the {startTeam}</div>
+      </div>
     </main>
   );
 }

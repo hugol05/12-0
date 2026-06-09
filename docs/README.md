@@ -139,6 +139,7 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Attributes & Rolls](attributes.md) | The 9 categories, multi-category ratings, roll count & re-roll rules |
 | [Simulation Engine](simulation-engine.md) | OVR formula, aging curve, season pipeline, team strength, Clutch impact, stats generation, awards, difficulty tuning |
 | [Results Screen](results-screen.md) | Career summary layout, key elements, share functionality |
+| [Nicknames & Archetypes](nicknames.md) | How the player's archetype label and nickname are generated |
 | [Visual Design](visual-design.md) | Color palette, typography, design elements, animations, screen-by-screen UI flow |
 | [Data Strategy](data-strategy.md) | Data pipeline, source-backed gaps, JSON structure, validation, player coverage, photo sources |
 | [Tech Stack & Architecture](tech-stack.md) | Frontend stack, PWA setup, repository structure, deployment |

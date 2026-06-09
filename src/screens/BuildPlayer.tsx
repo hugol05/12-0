@@ -71,6 +71,9 @@ export default function BuildPlayer() {
   const [filter, setFilter] = useState(0);
   const [search, setSearch] = useState('');
   const [rolling, setRolling] = useState(false);
+  // which reel(s) the current flourish animates: a full roll spins both, while a
+  // single re-roll only spins the reel it changed (the other stays on its value).
+  const [rollKind, setRollKind] = useState<'both' | 'team' | 'era'>('both');
   // bumped on every roll/re-roll so the slot-machine flourish re-fires each time
   const [rollSeq, setRollSeq] = useState(0);
   // true = the user must tap Roll before a roster appears (the reels still show
@@ -99,6 +102,7 @@ export default function BuildPlayer() {
     markBucketUsed(bucketKey(next));
     setSelected(null);
     setAwaitingRoll(false);
+    setRollKind('both');
     setRollSeq((n) => n + 1);
   };
 
@@ -134,7 +138,9 @@ export default function BuildPlayer() {
     return data.rollIndex.buckets.filter((b) => b.franchise === bucket.franchise && b.decade !== bucket.decade && !used.has(bucketKey(b))).length;
   }, [data, bucket, usedBuckets]);
 
-  const swapBucket = (pred: (b: RollBucket) => boolean) => {
+  // A re-roll only animates the reel it changes (`kind`); the other reel keeps
+  // its current value at full size instead of re-spinning.
+  const swapBucket = (pred: (b: RollBucket) => boolean, kind: 'team' | 'era') => {
     if (!data || !bucket || rolling) return false;
     const used = new Set(usedBuckets);
     const pool = data.rollIndex.buckets.filter((b) => pred(b) && !used.has(bucketKey(b)));
@@ -143,16 +149,17 @@ export default function BuildPlayer() {
     markBucketUsed(bucketKey(next));
     setBucket(next);
     setSelected(null);
+    setRollKind(kind);
     setRollSeq((n) => n + 1);
     return true;
   };
   const rerollTeam = () => {
     if (rerollTeamLeft <= 0 || !bucket) return;
-    if (swapBucket((b) => b.decade === bucket.decade && b.franchise !== bucket.franchise)) useRerollTeam();
+    if (swapBucket((b) => b.decade === bucket.decade && b.franchise !== bucket.franchise, 'team')) useRerollTeam();
   };
   const rerollEra = () => {
     if (rerollEraLeft <= 0 || !bucket) return;
-    if (swapBucket((b) => b.franchise === bucket.franchise && b.decade !== bucket.decade)) useRerollEra();
+    if (swapBucket((b) => b.franchise === bucket.franchise && b.decade !== bucket.decade, 'era')) useRerollEra();
   };
 
   // ── franchise reroll / confirm ──
@@ -306,7 +313,7 @@ export default function BuildPlayer() {
           <section className="roll2">
             <SlotReel
               className="roll2__team"
-              rolling={rolling}
+              rolling={rolling && rollKind !== 'era'}
               pool={teamPool}
               renderCell={(id) => {
                 const f = data.franchisesById.get(id);
@@ -316,7 +323,7 @@ export default function BuildPlayer() {
             />
             <SlotReel
               className="roll2__era"
-              rolling={rolling}
+              rolling={rolling && rollKind !== 'team'}
               pool={eraPool}
               renderCell={(d) => <span className="roll2__decade roll2__decade--spin">{d}</span>}
               final={displayBucket ? <span className="roll2__decade">{displayBucket.decade}</span> : null}
@@ -325,10 +332,10 @@ export default function BuildPlayer() {
               {canPick ? (
                 <>
                   <button className="reroll" onClick={rerollTeam} disabled={rerollTeamLeft <= 0 || rolling || teamAlternatives === 0}>
-                    ↻ Team · {rerollTeamLeft}
+                    Swap team
                   </button>
                   <button className="reroll" onClick={rerollEra} disabled={rerollEraLeft <= 0 || rolling || eraAlternatives === 0}>
-                    ↻ Era · {rerollEraLeft}
+                    Swap era
                   </button>
                 </>
               ) : (
@@ -473,12 +480,10 @@ function FranchisePanel({
 }) {
   if (!fr) {
     return (
-      <section className="franpanel">
-        <p className="franpanel__eyebrow">Your starting franchise</p>
-        <section className="rollcta">
-          <p className="rollcta__hint">All 9 attributes locked. Roll for the team you&apos;ll start your career on.</p>
-          <button className="rollcta__btn" onClick={onRoll} disabled={rolling}>Roll your team</button>
-        </section>
+      <section className="franpanel franpanel--intro">
+        <h2 className="franpanel__title">Your starting franchise</h2>
+        <p className="franpanel__lead">All 9 attributes are locked. Roll the team you&apos;ll begin your career with.</p>
+        <button className="franpanel__roll" onClick={onRoll} disabled={rolling}>Roll team</button>
       </section>
     );
   }
@@ -497,7 +502,7 @@ function FranchisePanel({
         <p className="franpanel__verdict">{verdict(fr.baseRating2026, fr.youthIndex)}</p>
       </div>
       <div className="franpanel__actions">
-        <button className="reroll" onClick={onReroll} disabled={rerollLeft <= 0 || rolling}>↻ Re-roll team · {rerollLeft}</button>
+        <button className="reroll" onClick={onReroll} disabled={rerollLeft <= 0 || rolling}>Re-roll team</button>
         <button className="franpanel__go" onClick={onConfirm} disabled={rolling}>Start career →</button>
       </div>
     </section>
