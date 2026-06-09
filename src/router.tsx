@@ -56,14 +56,7 @@ function RootLayout() {
   return (
     <>
       {showHome && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 'calc(var(--safe-top) + 12px)',
-            right: 'calc(var(--safe-right) + 12px)',
-            zIndex: 50,
-          }}
-        >
+        <div className="global-home">
           <BackButton variant="home" onClick={() => navigate('/')} />
         </div>
       )}
@@ -71,12 +64,12 @@ function RootLayout() {
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={location.pathname}
+          className="page-shell"
           variants={pageVariants(reduced)}
           initial="initial"
           animate="enter"
           exit="exit"
           transition={pageTransition}
-          style={{ minHeight: '100dvh' }}
         >
           {outlet}
         </motion.div>

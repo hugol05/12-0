@@ -1,32 +1,134 @@
 /* PlayerSilhouette — the single, unified centerpiece figure.
-   Sizes set the rendered width; the SVG keeps its 200:360 portrait aspect. */
+
+   The figure itself is an optimized PNG (dark-navy body + grey jersey/short/shoe
+   trim). Sizes set the rendered width; the artwork keeps its ~0.36 portrait
+   aspect. Around the figure we layer an ambient gold "broadcast spotlight" and a
+   grounding shadow so it sits in the OLED-black page with some depth/personality
+   instead of floating. `mode` tunes the finish. */
 
 .silhouette {
-  display: inline-block;
+  position: relative;
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
   line-height: 0;
+  isolation: isolate;
 }
 
-.silhouette svg {
+/* the figure */
+.silhouette__img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: auto;
   display: block;
-  overflow: visible; /* let the glow spill past the viewBox edges */
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 14px 26px rgba(0, 0, 0, 0.55));
 }
 
+/* ambient spotlight behind the figure — blends it into the black page */
+.silhouette__glow {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 46%;
+  width: 150%;
+  height: 118%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(214, 178, 92, 0.16) 0%,
+    rgba(214, 178, 92, 0.06) 42%,
+    transparent 72%
+  );
+}
+
+/* grounding shadow / reflection puddle under the feet */
+.silhouette__floor {
+  position: absolute;
+  z-index: 0;
+  bottom: -2%;
+  left: 50%;
+  width: 70%;
+  height: 7%;
+  transform: translateX(-50%);
+  pointer-events: none;
+  border-radius: 50%;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.28) 55%,
+    transparent 80%
+  );
+}
+
+/* ── modes ─────────────────────────────────────────────────────── */
+
+/* building — neutral navy figure, faint cool-neutral spotlight */
+.silhouette--building .silhouette__glow {
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(120, 140, 170, 0.12) 0%,
+    rgba(120, 140, 170, 0.05) 44%,
+    transparent 72%
+  );
+}
+
+/* complete — navy figure lifted by a soft gold glow */
+.silhouette--complete .silhouette__img {
+  filter: drop-shadow(0 0 16px rgba(214, 178, 92, 0.28))
+    drop-shadow(0 14px 26px rgba(0, 0, 0, 0.55));
+}
+
+/* poster — a polished championship-gold "statue" of the figure, strong halo.
+   The detailed navy artwork is replaced by the gold gradient masked to the
+   figure's exact silhouette. */
+.silhouette--poster .silhouette__glow {
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    rgba(228, 192, 110, 0.28) 0%,
+    rgba(214, 178, 92, 0.1) 46%,
+    transparent 74%
+  );
+}
+.silhouette--poster .silhouette__img {
+  opacity: 0; /* keep its box (sizes the wrapper); the gold layer paints over it */
+}
+.silhouette__gold {
+  display: none;
+}
+.silhouette--poster .silhouette__gold {
+  display: block;
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  background: var(--gradient-gold);
+  -webkit-mask: url('/assets/player-figure.png') center / contain no-repeat;
+  mask: url('/assets/player-figure.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 20px rgba(214, 178, 92, 0.5))
+    drop-shadow(0 14px 26px rgba(0, 0, 0, 0.6));
+}
+
+/* ── sizes (width; height follows the ~0.36 aspect) ────────────── */
 .silhouette--sm {
-  width: 120px;
+  width: 116px;
 }
 .silhouette--md {
-  width: 200px;
+  width: 156px;
 }
 .silhouette--lg {
-  width: 300px;
+  width: 224px;
 }
 
-/* Motion is gated in JS via useReducedMotion(); this is a belt-and-suspenders
-   guard for any UA that animates SVG transforms outside framer-motion's control. */
+/* Belt-and-suspenders guard for any UA that animates the figure outside
+   framer-motion's control (consumers gate idle motion on reduced-motion too). */
 @media (prefers-reduced-motion: reduce) {
-  .silhouette svg * {
+  .silhouette,
+  .silhouette * {
     animation: none !important;
   }
 }

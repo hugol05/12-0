@@ -16,10 +16,11 @@ const ALL: Partial<Record<RatingCategory, number>> = {
 };
 
 describe('PlayerSilhouette', () => {
-  it('renders an accessible svg image at every mode', () => {
+  it('renders an accessible figure image at every mode', () => {
     for (const mode of ['building', 'complete', 'poster'] as const) {
       const html = renderToStaticMarkup(<PlayerSilhouette filled={ALL} mode={mode} />);
-      expect(html).toContain('<svg');
+      expect(html).toContain('<img');
+      expect(html).toContain(`silhouette--${mode}`);
       expect(html).toContain('role="img"');
     }
   });
@@ -35,7 +36,7 @@ describe('PlayerSilhouette', () => {
   it('renders nothing-lit cleanly (only the dark base figure)', () => {
     const html = renderToStaticMarkup(<PlayerSilhouette filled={{}} mode="building" />);
     expect(html).toContain('0 of 8 attributes lit');
-    expect(html).toContain('<svg');
+    expect(html).toContain('<img');
   });
 
   it('honours the size prop', () => {
