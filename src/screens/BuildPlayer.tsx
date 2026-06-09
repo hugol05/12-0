@@ -4,10 +4,11 @@ import { motion, useReducedMotion } from 'framer-motion';
 import type { Franchise, OvrCategory, Player, Position, RatingCategory, RollBucket } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
-import { CATEGORIES, OVR_WEIGHTS, computeOvr } from '@/simulation/categories';
+import { OVR_WEIGHTS, computeOvr } from '@/simulation/categories';
 import { BuildStage, type StageSlot } from '@/components/BuildStage';
 import { TeamBadge } from '@/components/TeamBadge';
 import { cardReveal, staggerContainer } from '@/lib/motion';
+import { formatHeight } from '@/lib/archetype';
 import './BuildPlayer.css';
 
 const POS_FILTERS: { label: string; match: (p: Position) => boolean }[] = [
@@ -70,12 +71,17 @@ export default function BuildPlayer() {
   const [filter, setFilter] = useState(0);
   const [search, setSearch] = useState('');
   const [rolling, setRolling] = useState(false);
+  // bumped on every roll/re-roll so the slot-machine flourish re-fires each time
+  const [rollSeq, setRollSeq] = useState(0);
+  // true = the user must tap Roll before a roster appears (the reels still show
+  // the previously-rolled team/decade meanwhile). No auto-roll.
+  const [awaitingRoll, setAwaitingRoll] = useState(true);
 
   const attrDone = assignments.length === 9;
   const phase: 'attributes' | 'franchise' | 'done' = !attrDone ? 'attributes' : franchise ? 'done' : 'franchise';
   const placements = assignments.length + (franchise ? 1 : 0);
 
-  // ── attribute phase: draw a fresh bucket whenever we need one ──
+  // ── attribute phase: draw a fresh bucket whenever the user rolls ──
   const drawBucket = useCallback((): RollBucket | null => {
     if (!data) return null;
     const used = new Set(usedBuckets);
@@ -84,29 +90,32 @@ export default function BuildPlayer() {
     return pool[Math.floor(Math.random() * pool.length)];
   }, [data, usedBuckets]);
 
-  useEffect(() => {
-    if (!data || phase !== 'attributes' || bucket) return;
+  // Manual roll — the user taps Roll to draw the next franchise + decade. No auto-rolls.
+  const roll = () => {
+    if (rolling) return;
     const next = drawBucket();
-    if (next) {
-      setBucket(next);
-      markBucketUsed(bucketKey(next));
-    }
-  }, [data, phase, bucket, drawBucket, markBucketUsed]);
+    if (!next) return;
+    setBucket(next);
+    markBucketUsed(bucketKey(next));
+    setSelected(null);
+    setAwaitingRoll(false);
+    setRollSeq((n) => n + 1);
+  };
 
-  // ── franchise phase: roll a starting team ──
-  useEffect(() => {
-    if (!data || phase !== 'franchise' || startRoll) return;
+  // ── franchise phase: the user rolls their starting team ──
+  const rollFranchise = () => {
+    if (!data || rolling || !data.franchises.length) return;
     setStartRoll(data.franchises[Math.floor(Math.random() * data.franchises.length)]);
-  }, [data, phase, startRoll]);
+    setRollSeq((n) => n + 1);
+  };
 
-  // brief, smooth roll flourish whenever the rolled subject changes (never blanks the screen)
-  const rollSubject = phase === 'franchise' ? startRoll?.id : bucket ? bucketKey(bucket) : null;
+  // brief, snappy slot-machine flourish, re-fired on every roll / re-roll
   useEffect(() => {
-    if (!rollSubject) return;
+    if (rollSeq === 0) return;
     setRolling(true);
     const t = setTimeout(() => setRolling(false), reduced ? 0 : ROLL_MS);
     return () => clearTimeout(t);
-  }, [rollSubject, reduced]);
+  }, [rollSeq, reduced]);
 
   // advance to preview once the starting franchise is locked
   useEffect(() => {
@@ -134,6 +143,7 @@ export default function BuildPlayer() {
     markBucketUsed(bucketKey(next));
     setBucket(next);
     setSelected(null);
+    setRollSeq((n) => n + 1);
     return true;
   };
   const rerollTeam = () => {
@@ -151,6 +161,7 @@ export default function BuildPlayer() {
     const pool = data.franchises.filter((f) => f.id !== startRoll.id);
     if (!pool.length) return;
     setStartRoll(pool[Math.floor(Math.random() * pool.length)]);
+    setRollSeq((n) => n + 1);
     useRerollFranchise();
   };
   const confirmFranchise = () => {
@@ -170,7 +181,9 @@ export default function BuildPlayer() {
       source: { franchise: bucket.franchise, decade: bucket.decade },
     });
     advanceRoll();
-    setBucket(null);
+    // keep `bucket` so the reels keep showing the franchise/era just used; the
+    // user must Roll again for the next category.
+    setAwaitingRoll(true);
     setSelected(null);
   };
 
@@ -208,13 +221,19 @@ export default function BuildPlayer() {
       if (a) {
         const pl = data?.playersById.get(a.playerId);
         const photoUrl = pl && pl.photo.status === 'verified' ? pl.photo.url : undefined;
-        return { category, label, icon, fill: { rating: a.rating, playerName: pl?.name ?? '—', photoUrl } };
+        // Height isn't shown as a rating — the ring badge shows the real listed height instead.
+        const valueText = category === 'height' ? formatHeight(pl?.height) : undefined;
+        return { category, label, icon, valueText, fill: { rating: a.rating, playerName: pl?.name ?? '—', photoUrl } };
       }
       const open = phase === 'attributes' && !!selected && !rolling;
-      return { category, label, icon, highlighted: open, onClick: open ? () => assign(category) : undefined };
+      // Easy: empty rings preview the rating the active player would give here
+      // (replaces the category emoji). No separate ratings panel.
+      const previewRating = open && difficulty === 'easy' && selected ? selected.ratings[category] : undefined;
+      const valueText = category === 'height' && selected ? formatHeight(selected.height) : undefined;
+      return { category, label, icon, previewRating, valueText, highlighted: open, onClick: open ? () => assign(category) : undefined };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assignments, data, selected, phase, rolling]);
+  }, [assignments, data, selected, phase, rolling, difficulty]);
 
   // stable value pools for the slot-machine reels (team badges / decades)
   const teamPool = useMemo(() => (data ? data.franchises.map((f) => f.id) : []), [data]);
@@ -222,6 +241,27 @@ export default function BuildPlayer() {
     () => (data ? Array.from(new Set(data.rollIndex.buckets.map((b) => b.decade))) : []),
     [data],
   );
+
+  // The reels always show *something*: the live bucket once rolled, otherwise a
+  // stable placeholder before the very first roll ("whatever from both").
+  const placeholder = useMemo(() => {
+    const buckets = data?.rollIndex.buckets;
+    if (!buckets || !buckets.length) return null;
+    return buckets[Math.floor(Math.random() * buckets.length)];
+  }, [data]);
+  const displayBucket = bucket ?? placeholder;
+
+  // Warm the browser cache for the 3 highest-OVR players' headshots as soon as a
+  // roll settles, so the face shows instantly when one is placed into a ring.
+  useEffect(() => {
+    if (rolling || awaitingRoll || !bucket || roster.length === 0) return;
+    const top = [...roster].sort((a, b) => computeOvr(b.ratings) - computeOvr(a.ratings)).slice(0, 3);
+    for (const p of top) {
+      if (p.photo.status !== 'verified') continue;
+      const img = new Image();
+      img.src = p.photo.url;
+    }
+  }, [rolling, awaitingRoll, bucket, roster]);
 
   if (loading) return <main className="build build--center"><p className="muted">Loading rosters…</p></main>;
   if (error) return <main className="build build--center"><p className="muted">Failed to load data: {error}</p></main>;
@@ -233,8 +273,9 @@ export default function BuildPlayer() {
     return <main className="build build--center"><p className="build__entering muted">Entering your career…</p></main>;
   }
 
-  const fr = bucket ? data.franchisesById.get(bucket.franchise) : null;
+  const fr = displayBucket ? data.franchisesById.get(displayBucket.franchise) : null;
   const showStats = difficulty === 'easy' || difficulty === 'normal'; // box stats in the list (Hard hides)
+  const canPick = !awaitingRoll && !!bucket && !rolling;
 
   return (
     <main className="build">
@@ -255,105 +296,87 @@ export default function BuildPlayer() {
           fr={startRoll}
           rolling={rolling}
           rerollLeft={rerollFranchiseLeft}
+          onRoll={rollFranchise}
           onReroll={rerollFranchise}
           onConfirm={confirmFranchise}
         />
       ) : (
         <>
-          {/* ── roll (team + era) — slot-machine reels, always showing the team badge ── */}
+          {/* ── roll (team + era) — reels always show the last/placeholder roll ── */}
           <section className="roll2">
             <SlotReel
               className="roll2__team"
-              rolling={rolling || !bucket}
+              rolling={rolling}
               pool={teamPool}
               renderCell={(id) => {
                 const f = data.franchisesById.get(id);
                 return <TeamBadge franchiseId={id} abbreviation={f?.abbreviation} name={f?.name} size="md" />;
               }}
-              final={bucket ? <TeamBadge franchiseId={bucket.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="lg" /> : null}
+              final={displayBucket ? <TeamBadge franchiseId={displayBucket.franchise} abbreviation={fr?.abbreviation} name={fr?.name} size="lg" /> : null}
             />
             <SlotReel
               className="roll2__era"
-              rolling={rolling || !bucket}
+              rolling={rolling}
               pool={eraPool}
               renderCell={(d) => <span className="roll2__decade roll2__decade--spin">{d}</span>}
-              final={bucket ? <span className="roll2__decade">{bucket.decade}</span> : null}
+              final={displayBucket ? <span className="roll2__decade">{displayBucket.decade}</span> : null}
             />
-            <div className="roll2__rerolls">
-              <button className="reroll" onClick={rerollTeam} disabled={rerollTeamLeft <= 0 || rolling || teamAlternatives === 0}>
-                ↻ Team · {rerollTeamLeft}
-              </button>
-              <button className="reroll" onClick={rerollEra} disabled={rerollEraLeft <= 0 || rolling || eraAlternatives === 0}>
-                ↻ Era · {rerollEraLeft}
-              </button>
+            <div className="roll2__actions">
+              {canPick ? (
+                <>
+                  <button className="reroll" onClick={rerollTeam} disabled={rerollTeamLeft <= 0 || rolling || teamAlternatives === 0}>
+                    ↻ Team · {rerollTeamLeft}
+                  </button>
+                  <button className="reroll" onClick={rerollEra} disabled={rerollEraLeft <= 0 || rolling || eraAlternatives === 0}>
+                    ↻ Era · {rerollEraLeft}
+                  </button>
+                </>
+              ) : (
+                <button className="rollbtn" onClick={roll} disabled={rolling}>Roll</button>
+              )}
             </div>
           </section>
 
-          {/* Easy only: the active player's full rating breakdown (assign via chip or ring). */}
-          {selected && difficulty === 'easy' && (
-            <section className="ratingrow" aria-label={`${selected.name} ratings`}>
-              <p className="ratingrow__name">{selected.name} <span>· {selected.positions.join('/')}</span></p>
-              <div className="ratingrow__chips">
-                {CATEGORIES.map((c) => {
-                  const taken = assignments.some((a) => a.category === c.key);
+          {/* ── player list (only once a fresh roll is ready to pick) ── */}
+          {canPick && (
+            <section className="pick">
+              <div className="pick__controls">
+                <div className="pick__filters">
+                  {POS_FILTERS.map((f, i) => (
+                    <button key={f.label} className={`pill ${i === filter ? 'pill--active' : ''}`} onClick={() => setFilter(i)}>{f.label}</button>
+                  ))}
+                </div>
+                <input
+                  className="pick__search"
+                  placeholder="Search player…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <motion.ul className="pick__list" variants={staggerContainer(0.03)} initial="hidden" animate="show">
+                {roster.map((p) => {
+                  const isActive = selected?.id === p.id;
                   return (
-                    <button
-                      key={c.key}
-                      className={`chip ${taken ? 'chip--taken' : 'chip--open'}`}
-                      disabled={taken}
-                      onClick={() => assign(c.key)}
-                      title={taken ? 'Already filled' : `Assign ${c.label}`}
-                    >
-                      <span className="chip__cat">{c.icon}</span>
-                      <b className="chip__val">{selected.ratings[c.key]}</b>
-                    </button>
+                    <motion.li key={p.id} variants={cardReveal(reduced)}>
+                      <button className={`player ${isActive ? 'player--active' : ''}`} onClick={() => setSelected(isActive ? null : p)}>
+                        <span className="player__main">
+                          <span className="player__name">{p.name}</span>
+                          {showStats && (
+                            <span className="player__stats">{p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG</span>
+                          )}
+                        </span>
+                        <span className="player__pos"><b>{p.positions.join('/')}</b><small>POS</small></span>
+                        {difficulty !== 'hard' && (
+                          <span className="player__ovr"><b>{computeOvr(p.ratings)}</b><small>OVR</small></span>
+                        )}
+                      </button>
+                    </motion.li>
                   );
                 })}
-              </div>
-              <p className="ratingrow__hint">Tap a glowing ring (or a chip) to lock this player into a category</p>
+              </motion.ul>
             </section>
           )}
-
-          {/* Normal / Hard: no ratings revealed — just a prompt to place them. */}
-          {selected && difficulty !== 'easy' && (
-            <p className="pickhint">
-              <b>{selected.name}</b> <span>· {selected.positions.join('/')}</span> — tap a glowing ring to lock them in
-            </p>
-          )}
-
-          {/* ── player list ── */}
-          <section className="pick">
-            <div className="pick__controls">
-              <div className="pick__filters">
-                {POS_FILTERS.map((f, i) => (
-                  <button key={f.label} className={`pill ${i === filter ? 'pill--active' : ''}`} onClick={() => setFilter(i)}>{f.label}</button>
-                ))}
-              </div>
-              <input
-                className="pick__search"
-                placeholder="Search player…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <motion.ul className="pick__list" variants={staggerContainer(0.03)} initial="hidden" animate="show">
-              {roster.map((p) => {
-                const isActive = selected?.id === p.id;
-                return (
-                  <motion.li key={p.id} variants={cardReveal(reduced)}>
-                    <button className={`player ${isActive ? 'player--active' : ''}`} onClick={() => setSelected(isActive ? null : p)}>
-                      <span className="player__name">{p.name}</span>
-                      <span className="player__pos">{p.positions.join('/')}</span>
-                      {showStats && (
-                        <span className="player__stats">{p.stats.ppg} PPG · {p.stats.rpg} RPG · {p.stats.apg} APG</span>
-                      )}
-                    </button>
-                  </motion.li>
-                );
-              })}
-            </motion.ul>
-          </section>
         </>
       )}
     </main>
@@ -361,12 +384,12 @@ export default function BuildPlayer() {
 }
 
 /**
- * SlotReel — a slot-machine reel. While `rolling`, a vertical strip of random
- * picks scrolls upward with motion blur (see .slot in BuildPlayer.css); when it
- * stops, the real value lands with a spring. Drives both the team (badges) and
- * era (decades) reels — the team reel therefore always shows badges, never bare
- * letters.
+ * SlotReel — a slot-machine reel. While `rolling`, it flips through distinct
+ * random picks (one every SHUFFLE_MS) so you actually *see* the teams/decades
+ * cycling; each new pick slides in from the top. When it stops, the real value
+ * lands. Drives both the team (badges) and era (decades) reels.
  */
+const SHUFFLE_MS = 70;
 function SlotReel<T>({
   rolling,
   pool,
@@ -380,20 +403,26 @@ function SlotReel<T>({
   final: ReactNode;
   className?: string;
 }) {
-  // Fresh random cells each time a spin begins; doubled so the upward loop is seamless.
-  const cells = useMemo(() => {
-    if (!rolling || pool.length === 0) return [] as T[];
-    return Array.from({ length: 8 }, () => pool[Math.floor(Math.random() * pool.length)]);
+  // `tick` advances on every flip so React remounts the cell and re-runs the
+  // slide-in animation; `item` is the value currently flashing past.
+  const [tick, setTick] = useState(0);
+  const [item, setItem] = useState<T | null>(null);
+
+  useEffect(() => {
+    if (!rolling || pool.length === 0) return;
+    const flip = () => {
+      setItem(pool[Math.floor(Math.random() * pool.length)]);
+      setTick((t) => t + 1);
+    };
+    flip();
+    const id = setInterval(flip, SHUFFLE_MS);
+    return () => clearInterval(id);
   }, [rolling, pool]);
 
   return (
     <div className={`slot ${className}`}>
-      {rolling && cells.length > 0 ? (
-        <div className="slot__strip" aria-hidden>
-          {cells.concat(cells).map((c, i) => (
-            <div className="slot__cell" key={i}>{renderCell(c)}</div>
-          ))}
-        </div>
+      {rolling && item != null ? (
+        <div className="slot__cell" key={tick} aria-hidden>{renderCell(item)}</div>
       ) : (
         <div className="slot__final">{final}</div>
       )}
@@ -431,16 +460,28 @@ function FranchisePanel({
   fr,
   rolling,
   rerollLeft,
+  onRoll,
   onReroll,
   onConfirm,
 }: {
   fr: Franchise | null;
   rolling: boolean;
   rerollLeft: number;
+  onRoll: () => void;
   onReroll: () => void;
   onConfirm: () => void;
 }) {
-  if (!fr) return <section className="franpanel"><p className="muted">Rolling your team…</p></section>;
+  if (!fr) {
+    return (
+      <section className="franpanel">
+        <p className="franpanel__eyebrow">Your starting franchise</p>
+        <section className="rollcta">
+          <p className="rollcta__hint">All 9 attributes locked. Roll for the team you&apos;ll start your career on.</p>
+          <button className="rollcta__btn" onClick={onRoll} disabled={rolling}>Roll your team</button>
+        </section>
+      </section>
+    );
+  }
   const str = strengthLabel(fr.baseRating2026);
   return (
     <section className="franpanel">

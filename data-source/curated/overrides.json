@@ -4,6 +4,26 @@
   "reviewedBy": "WS1-data-curation",
   "reviewedAt": "2026-06-07",
   "overrides": {
+    "787": {
+      "ratings": { "shooting": 75, "playmaking": 82, "defense": 82, "rebounding": 94, "athleticism": 91, "basketballIq": 80, "clutch": 86, "durability": 88 },
+      "rationale": "Charles Barkley — absent from the 2K dataset, so hand-rated on the 2K scale (curated overrides are cap-exempt). REB 94 (one of the greatest rebounding forwards ever at 6-6), ATH 91 (>90 evidence: 'The Round Mound of Rebound', elite explosive leaping/strength for his size, MVP-level transition force), CLU 86 (kept <90 — ringless per the winners rule)."
+    },
+    "397": {
+      "ratings": { "shooting": 96, "playmaking": 74, "defense": 72, "rebounding": 52, "athleticism": 70, "basketballIq": 86, "clutch": 95, "durability": 94 },
+      "rationale": "Reggie Miller — absent from the 2K dataset, hand-rated. SHO 96 (>95 evidence: all-time elite off-movement 3PT shooter, 2560 career threes), CLU 95 (>95 evidence: archetypal big-shot legend — 8 points in 9 seconds; listed in clutch.json legends). DUR 94 (near iron-man career)."
+    },
+    "76972": {
+      "ratings": { "shooting": 76, "playmaking": 82, "defense": 70, "rebounding": 80, "athleticism": 91, "basketballIq": 80, "clutch": 80, "durability": 70 },
+      "rationale": "Connie Hawkins — absent from the 2K dataset, hand-rated. ATH 91 (>90 evidence: legendary playground/ABA aerial artist, huge hands and hang-time, a pre-Dr.J above-the-rim pioneer). DUR 70 (lost prime years to the NBA ban)."
+    },
+    "77196": {
+      "ratings": { "shooting": 84, "playmaking": 70, "defense": 74, "rebounding": 58, "athleticism": 80, "basketballIq": 82, "clutch": 95, "durability": 84 },
+      "rationale": "Sam Jones — absent from the 2K dataset, hand-rated. CLU 95 (>95 evidence: 10-time champion bank-shot closer, the Celtics' designated last-shot taker; in clutch.json legends). SHO 84 (renowned mid-range/bank shooter)."
+    },
+    "78530": {
+      "ratings": { "shooting": 72, "playmaking": 88, "defense": 78, "rebounding": 58, "athleticism": 74, "basketballIq": 90, "clutch": 80, "durability": 86 },
+      "rationale": "Lenny Wilkens — absent from the 2K dataset, hand-rated. PLY 88 / IQ 90 (Hall-of-Fame floor general, perennial assists leader and player-coach). Ringless so CLU kept modest."
+    },
     "2544": {
       "ratings": { "athleticism": 96 },
       "rationale": "Athleticism 80->96. Reason: box-score steals/ORB underrate transition speed + chase-down/recovery explosiveness. Evidence (>90): consensus generational open-court athlete (6-9, 250 lbs sprinting coast-to-coast), iconic chase-down blocks, prime above-the-rim finishing."

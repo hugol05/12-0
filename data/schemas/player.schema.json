@@ -47,6 +47,8 @@
       }
     },
     "height": { "type": "string" },
+    "wingspan": { "type": "string" },
+    "archetype": { "type": "string" },
     "photo": {
       "type": "object",
       "additionalProperties": false,

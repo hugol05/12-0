@@ -10,14 +10,16 @@
 
 | # | Category | Icon | What It Represents | Key Stats | Example Top Players |
 |---|----------|------|--------------------|-----------|---------------------|
-| 1 | **Shooting** | 🎯 | Shooting touch & efficiency (not scoring volume) | FT% + 3P% + 3PAr + eFG%/TS% | Curry, Reggie Miller, Klay, Dirk, Ray Allen |
-| 2 | **Height & Wingspan** | 📏 | Physical frame & reach | Height + wingspan data | Yao Ming, Wembanyama, Giannis, Bol Bol |
-| 3 | **Playmaking** | 🏀 | Court vision & passing | APG + AST% | Magic, Stockton, CP3, Nash |
-| 4 | **Defense** | 🛡️ | Rim protection & perimeter D | BPG + SPG + DBPM | Russell, Hakeem, Kawhi, Pippen |
-| 5 | **Rebounding** | 💪 | Board control & positioning | RPG + TRB% | Rodman, Wilt, Moses Malone, Barkley |
-| 6 | **Athleticism** | ⚡ | Speed, vertical, explosiveness | Curated / combine data | Westbrook, LeBron, Vince Carter, D-Rose |
-| 7 | **Basketball IQ** | 🧠 | Decision-making & BBIQ | Win Shares + BPM + VORP | LeBron, Bird, Duncan, Jokić |
-| 8 | **Clutch** | 🔥 | Finals performance under pressure | Playoff PPG boost + Finals record + game-winners | Jordan, Kobe, Hakeem, Dirk, Duncan |
+| 1 | **Shooting** | 🎯 | Pure jump shot (not inside finishing) | 3PT + mid-range + FT + shot IQ | Curry, Reggie Miller, Klay, Dirk, Ray Allen |
+| 2 | **Height & Wingspan** | 📏 | Physical frame & reach | Height + wingspan blend | Yao Ming, Wembanyama, Giannis, Bol Bol |
+| 3 | **Playmaking** | 🏀 | Court vision & passing | 2K playmaking group | Magic, Stockton, CP3, Nash |
+| 4 | **Defense** | 🛡️ | Rim protection & perimeter D | 2K defense group | Russell, Hakeem, Kawhi, Pippen |
+| 5 | **Rebounding** | 💪 | Board control & positioning | 2K rebounding group | Rodman, Wilt, Moses Malone, Barkley |
+| 6 | **Athleticism** | ⚡ | Speed, vertical, explosiveness + inside finishing | 2K athleticism + dunk | Westbrook, LeBron, Vince Carter, Giannis |
+| 7 | **Basketball IQ** | 🧠 | Decision-making & BBIQ | pass + shot + help-defense IQ | LeBron, Bird, Duncan, Jokić |
+| 8 | **Clutch** | 🔥 | Performance under pressure (winners rate higher) | star tier + rings + big-shot legends | Jordan, Kobe, Reggie, Lillard, Duncan |
+
+> **Height is not shown as a number.** Unlike the other categories, Height & Wingspan is never surfaced as a "94" rating to the player — the UI shows the real listed height (e.g. 7'1") and folds size into the player's **archetype** (e.g. "Defensive Anchor"). It still feeds OVR at 8%. Ratings come from a hand-rated 2K-style dataset where available; see [data-strategy.md §4](data-strategy.md).
 
 ### 1 Category That Affects Career Length Only
 

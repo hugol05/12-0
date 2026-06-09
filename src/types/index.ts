@@ -69,6 +69,8 @@ export interface Player {
   ratings: Ratings;
   ratingMeta?: Partial<Record<RatingCategory, RatingMeta>>;
   height?: string; // e.g. "6-2"
+  wingspan?: string; // e.g. "7-3" (2K-rated players only)
+  archetype?: string; // 2K archetype string, e.g. "Offensive Architect" (2K-rated players only)
   photo: PlayerPhoto;
 }
 

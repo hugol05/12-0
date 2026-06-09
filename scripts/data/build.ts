@@ -13,10 +13,12 @@
  * (data-source/curated/overrides.json) are layered last.
  */
 import { join } from 'node:path';
+import { writeFile } from 'node:fs/promises';
 import {
-  CURATED_DIR, OUT_DIR, fetchCached, parseCsv, readJson, writeJson, sha256,
+  CURATED_DIR, OUT_DIR, ROOT, fetchCached, parseCsv, readJson, writeJson, sha256,
   normName, toNum, pctToFrac, decadeOf, clamp, percentileRanker,
 } from './util.ts';
+import { loadTwok, mapSkills, heightRating, clutchRating, type ClutchConfig } from './twok.ts';
 
 const RAW_HIST = 'https://raw.githubusercontent.com/peasant98/TheNBACSV/master/nbaNew.csv';
 const BRESCOU = 'https://raw.githubusercontent.com/Brescou/NBA-dataset-stats-player-team/main/player';
@@ -26,6 +28,21 @@ const MIN_SEASON_GAMES = 20; // a season only counts toward a franchise bucket a
 const MIN_FRANCHISE_DECADE_SEASONS = 2; // 2+ seasons for a franchise in a decade to qualify
 const MIN_BUCKET_PLAYERS = 10; // single coverage threshold
 const MIN_CAREER_GAMES = 50;
+
+// OVR weights (mirror src/simulation/categories.ts — durability excluded). Used to cap the OVR of
+// players the 2K dataset does not cover: if you aren't in 2K you aren't a marquee name, so your
+// overall is clamped to CAP_OVR (skill ratings scaled down to hit it; height/durability untouched).
+const OVR_WEIGHTS: Record<string, number> = {
+  shooting: 0.2, playmaking: 0.15, defense: 0.15, clutch: 0.15,
+  athleticism: 0.1, rebounding: 0.1, height: 0.08, basketballIq: 0.07,
+};
+const SKILL_CATS = ['shooting', 'playmaking', 'defense', 'clutch', 'athleticism', 'rebounding', 'basketballIq'] as const;
+const CAP_OVR = 80; // best a non-2K (filler) player can be overall
+function computeOvr(r: Record<string, number>): number {
+  let ovr = 0;
+  for (const [c, w] of Object.entries(OVR_WEIGHTS)) ovr += (r[c] ?? 0) * w;
+  return Math.round(ovr);
+}
 
 type Pos = 'PG' | 'SG' | 'SF' | 'PF' | 'C';
 
@@ -101,6 +118,12 @@ async function main(): Promise<void> {
   const overridesDoc = await readJson<{ overrides: Record<string, { ratings?: Record<string, number>; rationale?: string }> }>(
     join(CURATED_DIR, 'overrides.json'),
   );
+  // 2K-style rated dataset (rating source of truth) + its curated knobs.
+  const clutchCfg = await readJson<ClutchConfig>(join(CURATED_DIR, 'clutch.json'));
+  const aliasesDoc = await readJson<{ aliases: Record<string, string> }>(join(CURATED_DIR, 'player-aliases.json'));
+  const twokMap = await loadTwok(aliasesDoc.aliases);
+  const twokMatched = new Set<string>(); // normName keys matched to a roster player
+  const cappedReport: { id: string; name: string; oldOvr: number; newOvr: number; height: string; teams: string }[] = [];
 
   const codeToFranchise = new Map<string, string>();
   for (const f of franchiseDoc.franchises) for (const c of f.teamCodes) codeToFranchise.set(c, f.id);
@@ -315,29 +338,60 @@ async function main(): Promise<void> {
       : R(0.5 * rk.rpg(a.rep.rpg) + 0.5 * rk.ppg(a.rep.ppg));
     const basketballIq = R(0.5 * rk.astTov(a.rep.astTov) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.ftPct(a.rep.ftPct));
     const clutch = R(0.5 * rk.ppg(a.rep.ppg) + 0.3 * rk.ts(a.rep.ts) + 0.2 * rk.usg(a.rep.usg));
-    // Height: real listed inches where known; re-tuned linear map so 6'0" guards land ~57 and
-    // 7-footers ~89 (32 points per foot above 6'0"). Estimated heights stay flagged confidence:low.
-    const height = clamp(Math.round(((a.p.heightIn - 72) / 12) * 32 + 57), 25, 99);
+    // Height: anchored to listed inches (tallest=99, 7'0">=90, 6'9"~84). Hidden from the user as a
+    // number (shown as real height + folded into the archetype) but still feeds OVR (.08).
+    const height = heightRating(a.p.heightIn);
     const durRaw = 0.6 * Math.min(a.seasonsPlayed / 18, 1) + 0.4 * Math.min(a.avgG / 75, 1);
     const durability = clamp(Math.round(35 + durRaw * 60), 25, 99);
 
     const ratings: Record<string, number> = { shooting, height, playmaking, defense, rebounding, athleticism, basketballIq, clutch, durability };
 
+    // ---- 2K-style rated dataset = rating source of truth wherever it covers the player ----
+    const tw = twokMap.get(a.p.key);
+    let archetype: string | undefined;
+    let wingspanIn: number | undefined;
     const ratingMeta: Record<string, { confidence: string; sourceCoverage: string }> = {};
-    if (!has3pt) ratingMeta.shooting = { confidence: 'medium', sourceCoverage: 'partial' };
-    if (!hasStlBlk) { ratingMeta.defense = { confidence: 'low', sourceCoverage: 'partial' }; ratingMeta.athleticism = { confidence: 'low', sourceCoverage: 'partial' }; }
-    else if (!modern) ratingMeta.athleticism = { confidence: 'medium', sourceCoverage: 'partial' };
-    ratingMeta.clutch = { confidence: 'medium', sourceCoverage: 'partial' };
-    if (a.p.heightEstimated) ratingMeta.height = { confidence: 'low', sourceCoverage: 'partial' };
+    if (tw) {
+      twokMatched.add(a.p.key);
+      Object.assign(ratings, mapSkills(tw.raw)); // shooting/playmaking/defense/rebounding/athleticism/IQ/durability
+      ratings.clutch = clutchRating(tw.name, tw.overall, tw.intangibles, clutchCfg);
+      ratings.height = heightRating(a.p.heightIn, tw.wingspanIn);
+      wingspanIn = tw.wingspanIn;
+      archetype = tw.archetype || undefined;
+      // hand-rated values — no box-score proxy caveats
+    } else {
+      if (!has3pt) ratingMeta.shooting = { confidence: 'medium', sourceCoverage: 'partial' };
+      if (!hasStlBlk) { ratingMeta.defense = { confidence: 'low', sourceCoverage: 'partial' }; ratingMeta.athleticism = { confidence: 'low', sourceCoverage: 'partial' }; }
+      else if (!modern) ratingMeta.athleticism = { confidence: 'medium', sourceCoverage: 'partial' };
+      ratingMeta.clutch = { confidence: 'medium', sourceCoverage: 'partial' };
+      if (a.p.heightEstimated) ratingMeta.height = { confidence: 'low', sourceCoverage: 'partial' };
+    }
 
     // stable id
     let id = a.p.personId && /^\d+$/.test(a.p.personId) ? a.p.personId : `h${sha256(a.p.key)}`;
     while (usedIds.has(id)) id = `${id}_`;
     usedIds.add(id);
 
-    // curated override
-    const ov = overridesDoc.overrides[id];
-    if (ov?.ratings) for (const [k2, v2] of Object.entries(ov.ratings)) if (k2 in ratings) ratings[k2] = clamp(Math.round(v2), 0, 99);
+    // The box-score tail (not in 2K): apply curated overrides, then cap OVR so non-marquee players
+    // can't be highly rated. 2K-covered players bypass both (they are the source of truth).
+    if (!tw) {
+      const ov = overridesDoc.overrides[id];
+      if (ov?.ratings) for (const [k2, v2] of Object.entries(ov.ratings)) if (k2 in ratings) ratings[k2] = clamp(Math.round(v2), 0, 99);
+      const ovr0 = computeOvr(ratings);
+      // A curated override marks a marquee player the 2K set happens to omit (e.g. Barkley) —
+      // exempt from the filler cap. Everyone else not in 2K is clamped to CAP_OVR.
+      if (ovr0 > CAP_OVR && !ov?.ratings) {
+        const hPart = ratings.height * OVR_WEIGHTS.height;
+        const skillPart = SKILL_CATS.reduce((s, c) => s + ratings[c] * OVR_WEIGHTS[c], 0);
+        const factor = skillPart > 0 ? (CAP_OVR - hPart) / skillPart : 1;
+        for (const c of SKILL_CATS) ratings[c] = clamp(Math.round(ratings[c] * factor), 25, 99);
+        cappedReport.push({
+          id, name: a.p.name, oldOvr: ovr0, newOvr: computeOvr(ratings),
+          height: `${Math.floor(a.p.heightIn / 12)}-${a.p.heightIn % 12}`,
+          teams: [...a.franDecades.keys()].join('/'),
+        });
+      }
+    }
 
     // teams + buckets
     const teams: { franchise: string; decades: string[] }[] = [];
@@ -366,6 +420,8 @@ async function main(): Promise<void> {
       },
       ratings, ratingMeta,
       height: `${Math.floor(a.p.heightIn / 12)}-${a.p.heightIn % 12}`,
+      ...(wingspanIn ? { wingspan: `${Math.floor(wingspanIn / 12)}-${wingspanIn % 12}` } : {}),
+      ...(archetype ? { archetype } : {}),
       photo,
     });
   }
@@ -407,13 +463,41 @@ async function main(): Promise<void> {
   }
   await writeJson(join(OUT_DIR, 'manifest.json'), {
     dataVersion, generatedAt: new Date().toISOString(),
-    sourceSummary: 'BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern (2018-2023). Ratings = era-aware percentile formulas + curated overrides.',
+    sourceSummary: 'BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern. Ratings: 2K-style rated dataset (data-source/2k) is the source of truth where it covers a player; the remaining box-score tail uses era-aware formulas and is OVR-capped. Curated clutch (rings/legends) + name aliases.',
     files,
   });
+
+  // ---- review report: who the 2K dataset rates, who got capped, who is missing ----
+  const keptKeys = new Set(finalPlayers.map((p) => normName((p as { name: string }).name)));
+  const shippedCapped = cappedReport.filter((c) => keptIds.has(c.id)).sort((x, y) => y.oldOvr - x.oldOvr);
+  const matchedShipped = [...twokMatched].filter((k) => keptKeys.has(k)).length;
+  // 2K players never matched to a shipped roster player (candidates to add later, by overall).
+  const unmatched2k = [...twokMap.entries()]
+    .filter(([k]) => !twokMatched.has(k))
+    .map(([, v]) => v)
+    .sort((x, y) => y.overall - x.overall);
+  const reportLines: string[] = [];
+  reportLines.push('# 2K rating-integration report', '');
+  reportLines.push(`Generated ${new Date().toISOString().slice(0, 10)} by \`npm run data\`. dataVersion ${dataVersion}.`, '');
+  reportLines.push(`- Roster shipped: **${finalPlayers.length}** players.`);
+  reportLines.push(`- Rated from the 2K dataset (source of truth): **${matchedShipped}**.`);
+  reportLines.push(`- Box-score tail OVR-capped at ${CAP_OVR}: **${shippedCapped.length}**.`);
+  reportLines.push(`- 2K players not on our roster (no franchise/decade history): **${unmatched2k.length}**.`, '');
+  reportLines.push('## Capped players (OVR clamped to ' + CAP_OVR + ')', '');
+  reportLines.push('Sorted by pre-cap OVR. A genuinely famous name high in this list is probably a **name-mismatch** with the 2K set — add it to `data-source/curated/player-aliases.json` so it gets real 2K ratings instead of being capped.', '');
+  reportLines.push('| Pre | → | Name | Height | Franchises |', '|----|----|------|--------|-----------|');
+  for (const c of shippedCapped) reportLines.push(`| ${c.oldOvr} | ${c.newOvr} | ${c.name} | ${c.height} | ${c.teams} |`);
+  reportLines.push('', '## Notable 2K players NOT on our roster (overall ≥ 82)', '');
+  reportLines.push('These are rated by 2K but absent from the box-score history (mostly 2023-25 debuts), so they have no franchise/decade buckets. Candidates to add as 2020s players if you want them playable.', '');
+  reportLines.push('| OVR | Name | Pos | 2K team | Archetype |', '|----|------|-----|---------|-----------|');
+  for (const v of unmatched2k) if (v.overall >= 82) reportLines.push(`| ${v.overall} | ${v.name} | ${v.position1} | ${v.team} | ${v.archetype} |`);
+  await writeFile(join(ROOT, 'data-source', '2k', 'integration-report.md'), reportLines.join('\n') + '\n', 'utf8');
 
   console.log(`players: ${finalPlayers.length} (of ${outPlayers.length} pre-bucket-filter)`);
   console.log(`buckets >= ${MIN_BUCKET_PLAYERS}: ${bucketList.length}`);
   console.log(`franchises with buckets: ${outFranchises.length}`);
+  console.log(`2K-rated (shipped): ${matchedShipped} | capped: ${shippedCapped.length} | 2K-unmatched: ${unmatched2k.length}`);
+  console.log(`report: data-source/2k/integration-report.md`);
   console.log(`dataVersion: ${dataVersion}`);
 }
 

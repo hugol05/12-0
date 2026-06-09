@@ -3,6 +3,17 @@
   "version": 2,
   "sources": [
     {
+      "id": "twok-rated-attributes",
+      "title": "2K-style rated player attributes (all-time + current)",
+      "raw": "data-source/2k/{all_time,current}_2k.csv",
+      "license": "owner-provided dataset; accepted for this non-commercial fan game",
+      "attribution": "Hand-rated 2K-style attribute set supplied by the project owner.",
+      "access": "local-file",
+      "role": "shipped-ratings-primary",
+      "coverage": "~780 unique players (461 all-time + 457 current rows, deduped)",
+      "notes": "RATING SOURCE OF TRUTH. Per-player 0-99 attribute groups (outside/inside scoring, athleticism, playmaking, defense, rebounding), shot/pass/help-defense IQ, intangibles, overall_durability, height_feet, wingspan_feet, position, and an `archetype` string. Mapped to the 9 categories in scripts/data/twok.ts and joined to the box-score roster by normName + data-source/curated/player-aliases.json. Players it doesn't cover fall back to box-score formulas and are OVR-capped. No franchise/decade history (only a current/iconic team) — buckets come from the box-score join."
+    },
+    {
       "id": "thenbacsv-1950-2017",
       "title": "TheNBACSV / nbaNew.csv (Basketball-Reference-derived season stats)",
       "url": "https://github.com/peasant98/TheNBACSV",

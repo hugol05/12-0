@@ -51,7 +51,7 @@ Modern players (1996+) carry the real NBA `PLAYER_ID` from the Brescou set → `
 ### Division of labour
 
 - **Factual (ingested):** name, position, height (real for modern, position-estimated + flagged for old eras), franchise/decade tags, PPG/RPG/APG/SPG/BPG, career totals, advanced metrics, headshot URL.
-- **Subjective (formula + curated):** the 9 ratings (Shooting … Durability). Era-aware formulas turn real stats into a 0-99 first pass (percentile-normalised within the player's primary era so a 1960s player isn't punished for the absent 3PT/STL/BLK columns); **sourced** curated overrides in `data-source/curated/overrides.json` fix legends and pre-1973/pre-1980 gaps. Formulas scale; overrides target the ~100-150 players that matter most.
+- **Subjective (2K-rated → formula fallback → curated):** the 9 ratings (Shooting … Durability). The **2K-style rated dataset** (`data-source/2k/`) is the source of truth for the ~530 players it covers (all marquee names) — mapped directly, no proxies. Players it doesn't cover fall back to era-aware box-score formulas and are **OVR-capped at 80**. **Sourced** curated overrides (`data-source/curated/overrides.json`) mark cap-exempt legends the 2K set omits (Barkley, Reggie Miller…). See §4. Players also carry a 2K `archetype` and `wingspan`.
 
 **Era caveats** (drive era-aware formulas): steals/blocks only from 1973-74; 3-pointers only from 1979-80; advanced stats only from 1996-97. Players before those cutoffs get era-relative formulas plus curated defense/clutch notes, flagged `confidence: "medium"`.
 
@@ -162,18 +162,36 @@ Every normalized row must include:
 
 ### 4. Rating Generation
 
-Generate a first-pass rating for all 9 categories using deterministic formulas. Ratings must be reproducible from normalized inputs and a versioned formula file.
+Ratings come from **two tiers**, in priority order:
 
-Inputs are a **prime-weighted** representative line: token/rookie/decline seasons (< half a player's peak-minutes season) are dropped and the biggest seasons are emphasised (minutes^1.3), so durable greats aren't diluted by long career tails — ratings reflect a player's prime, like 2K.
+1. **2K-style rated dataset (source of truth).** `data-source/2k/{all_time,current}_2k.csv` are hand-rated attribute sets (2K-style: outside/inside scoring, athleticism, playmaking, defense, rebounding groups + shot/pass/help-defense IQ, durability, height, wingspan, and an `archetype` string). For every player they cover (~530 shipped — essentially all marquee names), the 9 categories are mapped **directly** from these attributes — no box-score proxies, which were the source of the old "weird ratings". Loaded + mapped in `scripts/data/twok.ts`; joined to the roster by `normName` plus a curated alias map (`data-source/curated/player-aliases.json`) so nickname/spelling differences (e.g. box-score "Anfernee Hardaway" ↔ 2K "Penny Hardaway") still match.
 
-Each metric is percentile-ranked **within the player's peak decade** (so a 1960s player isn't punished for absent 3PT/STL/BLK columns), then mapped to 0-99 via a star-separating convex curve `rate(p) = clamp(round(36 + 63·p^1.25), 25, 99)` — ceiling 99 (so all-time greats reach the top of the scale) and convex (so the elite pull away from the merely-good instead of bunching in the 80s).
+2. **Box-score formula (fallback, capped).** Players not in the 2K set fall back to the era-aware formulas below, then have their **OVR capped at 80** (skill ratings scaled to hit it; height/durability untouched) — if you aren't in 2K you aren't a marquee name. A curated override (§5) marks a player the 2K set happens to omit (e.g. Barkley, Reggie Miller) as marquee and **exempts them from the cap**. Each `npm run data` writes `data-source/2k/integration-report.md` listing who was 2K-rated, who was capped (a famous name high in that list signals a needed alias), and notable 2K players absent from the roster.
 
-Skill ratings (all except height/durability) then take an **era-strength discount** by peak decade — `1940s −6, 1950s −4.5, 1960s −3, 1970s −4, 1980s −1.5, 1990s −0.5, 2000s+ 0` — because percentile-within-decade otherwise rates a top-of-era player in a shallow old league equal to a top-of-era star in today's far deeper league. True greats stay near the top after the haircut; merely-very-good role players drop. Height (a 7-footer is 7 feet in any era) and durability (era-neutral longevity) are not discounted. Curated overrides are layered last and may exceed the 0-99 band for documented apex cases.
+**2K → category mapping** (decided with the owner, in `mapSkills`/`clutchRating`/`heightRating`):
+
+| Category | From 2K |
+|----------|---------|
+| Shooting | **Pure jump shot:** `0.45·three_point + 0.25·mid_range + 0.20·free_throw + 0.10·shot_iq`. Inside finishing is deliberately *not* shooting (so non-shooting bigs fall, snipers rise). |
+| Athleticism | `0.70·athleticism_group + 0.15·driving_dunk + 0.15·standing_dunk` — explosive **inside finishing** folds in here (no scoring slot for it otherwise). |
+| Playmaking / Defense / Rebounding | The matching 2K group, 1:1. |
+| Basketball IQ | `0.40·pass_iq + 0.30·shot_iq + 0.30·help_defense_iq`. |
+| Durability | `overall_durability`, 1:1. |
+| Height/Wingspan | See below. |
+| Clutch | Not a 2K attribute — **derived** (see below). |
+
+**Clutch** (star tier + championship-aware): `base = (overall−50)/49·37 + 55 + (intangibles−70)·0.06`, plus `min(rings,6)·1.8`. Ring counts + big-shot legends live in `data-source/curated/clutch.json`. A **ringless** player is capped at 88 (a star who never won — Westbrook, Harden, Malone — cannot reach 90), while curated **legends** (Lillard, Reggie, Haliburton, Jordan, Curry, Kobe, Bird, Magic, Kawhi, Russell…) are floored at 93 regardless of rings.
+
+**Height/Wingspan** (anchored, owner-specified): `pure = inches≥84 ? 90 + 1.5·(inches−84) : 90 − 2·(84−inches)` then `+ clamp((wingspan−height−4)·0.6, 0, 5)` (wingspan only adds). So the tallest player in any dataset (7'6") = **99**, every 7-footer ≥ **90**, 6'9" ≈ **84**, and a freak wingspan (Gobert) rises. **Height is hidden from the user as a number** — the UI shows the real listed height and folds size into the player's archetype (`src/lib/archetype.ts`); it still feeds OVR (.08).
+
+#### Box-score fallback formulas
+
+Used only for players not in the 2K set (then OVR-capped). Inputs are a **prime-weighted** representative line: token/rookie/decline seasons (< half a player's peak-minutes season) are dropped and the biggest seasons emphasised (minutes^1.3). Each metric is percentile-ranked within the player's peak decade, mapped to 0-99 via `rate(p) = clamp(round(36 + 63·p^1.25), 25, 99)`, then skill ratings take an **era-strength discount** by peak decade (`1940s −6 … 2000s+ 0`; height/durability exempt).
 
 | Rating | Formula source (as implemented in `scripts/data/build.ts`) | Override allowed? | Confidence rule |
 |--------|----------------|-------------------|-----------------|
 | Shooting | **Shooting touch/efficiency, not scoring volume.** 1980+: `0.30·FT%-rank + 0.25·3P%-rank + 0.18·3PAr-rank + 0.17·eFG%-rank + 0.10·TS%-rank` (PPG demoted to **zero**). Pre-1980 (no 3PT columns): `0.45·FT%-rank + 0.35·TS%-rank + 0.20·PPG-rank`. FT% is the best cross-era touch proxy. | Yes | Lower (`medium`) before 1979-80 where range evidence is missing. |
-| Height/Wingspan | Real listed height (inches) where known; else position-estimated. Map: `clamp(round((inches−72)/12·32 + 57), 25, 99)` → 6'0"≈57, 7'0"≈89. **Not era-discounted.** | Yes | High for real height; `low` when estimated (no measured wingspan). |
+| Height/Wingspan | Anchored map (above), shared with the 2K tier. **Not era-discounted.** | Yes | High for real height; `low` when estimated (no measured wingspan). |
 | Playmaking | `0.65·APG-rank + 0.35·AST%-rank` | Yes | Lower before turnover data starts in 1977-78. |
 | Defense | 1974+: `0.7·(STL+BLK)-rank + 0.3·TRB%-rank`. Pre-1974: `0.55·TRB%-rank + neutral` (no steals/blocks). | Yes | Lower before steals/blocks start in 1973-74. |
 | Rebounding | `0.6·RPG-rank + 0.4·TRB%-rank` | Yes | Lower before rebound data starts in 1950-51 and before split rebounds in 1973-74. |

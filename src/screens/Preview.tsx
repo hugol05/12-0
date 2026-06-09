@@ -9,8 +9,15 @@ import { RadarChart } from '@/components/RadarChart';
 import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { TeamBadge } from '@/components/TeamBadge';
 import { cardReveal, pageTransition, pageVariants, staggerContainer } from '@/lib/motion';
+import { buildArchetype, formatHeight, parseHeightInches } from '@/lib/archetype';
 import type { OvrCategory, RatingCategory } from '@/types';
 import './Preview.css';
+
+// Short radar-axis labels — default is the first word of the category name, but
+// "Basketball IQ" must read as "IQ" (not "Basketball").
+const SHORT_AXIS_LABEL: Partial<Record<OvrCategory, string>> = {
+  basketballIq: 'IQ',
+};
 
 export default function Preview() {
   const navigate = useNavigate();
@@ -30,12 +37,16 @@ export default function Preview() {
   const ratings = useMemo(() => assignmentsToRatings(assignments), [assignments]);
   const ovr = computeOvr(ratings);
 
+  // Height is not surfaced as a rating — it's shown as the real height + folded into the archetype,
+  // so it's dropped from the radar axes.
   const axes = useMemo(
     () =>
-      (Object.keys(OVR_WEIGHTS) as OvrCategory[]).map((k) => ({
-        label: CATEGORIES.find((c) => c.key === k)?.label.split(' ')[0] ?? k,
-        value: ratings[k],
-      })),
+      (Object.keys(OVR_WEIGHTS) as OvrCategory[])
+        .filter((k) => k !== 'height')
+        .map((k) => ({
+          label: SHORT_AXIS_LABEL[k] ?? CATEGORIES.find((c) => c.key === k)?.label.split(' ')[0] ?? k,
+          value: ratings[k],
+        })),
     [ratings],
   );
 
@@ -48,6 +59,10 @@ export default function Preview() {
   if (!ready) return null;
 
   const fr = data?.franchisesById.get(franchise!.franchise);
+  // Height comes from whoever was assigned to the Height category; archetype folds size in.
+  const heightPlayer = data?.playersById.get(assignments.find((a) => a.category === 'height')?.playerId ?? '');
+  const heightStr = formatHeight(heightPlayer?.height);
+  const archetype = buildArchetype(filled, parseHeightInches(heightPlayer?.height));
 
   return (
     <motion.main
@@ -58,19 +73,22 @@ export default function Preview() {
       transition={pageTransition}
     >
       <header className="preview__head">
-        <p className="preview__eyebrow">Player Assembled</p>
-        <PlayerSilhouette filled={filled} mode="complete" size="lg" className="preview__fig" />
-        <div className="preview__ovr">
-          <span className="preview__ovr-num">{ovr}</span>
-          <span className="preview__ovr-label">OVR</span>
+        <div className="preview__head-info">
+          <div className="preview__ovr">
+            <span className="preview__ovr-num">{ovr}</span>
+            <span className="preview__ovr-label">OVR</span>
+          </div>
+          <p className="preview__eyebrow">Player Assembled</p>
+          <p className="preview__archetype">{archetype} <span className="preview__height">{heightStr}</span></p>
+          {fr && (
+            <p className="preview__team">
+              <TeamBadge franchiseId={fr.id} abbreviation={fr.abbreviation} name={fr.name} size="sm" />
+              <span>Starting on the {fr.name}</span>
+            </p>
+          )}
+          <p className="preview__mode">{difficulty} mode · {franchise!.decade} era</p>
         </div>
-        {fr && (
-          <p className="preview__team">
-            <TeamBadge franchiseId={fr.id} abbreviation={fr.abbreviation} name={fr.name} size="md" />
-            <span>Starting on the {fr.name}</span>
-          </p>
-        )}
-        <p className="preview__mode">{difficulty} mode · {franchise!.decade} era</p>
+        <PlayerSilhouette filled={filled} mode="complete" size="md" className="preview__fig" />
       </header>
 
       <section className="preview__radar">
@@ -119,7 +137,9 @@ export default function Preview() {
                     />
                   )}
                 </span>
-                <span className="builtwith__rating">{a?.rating ?? '—'}</span>
+                <span className="builtwith__rating">
+                  {c.key === 'height' ? formatHeight(player?.height) : (a?.rating ?? '—')}
+                </span>
               </motion.li>
             );
           })}

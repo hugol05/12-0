@@ -161,7 +161,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
   const totals = { points: 0, rebounds: 0, assists: 0, steals: 0, blocks: 0, games: 0 };
   let championships = 0;
   let finalsLosses = 0;
-  let mvps = 0, finalsMvps = 0, allStars = 0, allNba = 0, dpoys = 0;
+  let mvps = 0, finalsMvps = 0, allStars = 0, allNba = 0, dpoys = 0, scoringTitles = 0;
   let seasonsOnCurrentTeam = 0;
   let contractLength = rng.int(3, 6);
   let ovrPenalty = 0;
@@ -234,6 +234,10 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     if (ovr > 90) { awards.push('All-NBA First Team'); allNba++; }
     else if (ovr > 85) { awards.push('All-NBA'); allNba++; }
     if (ratings.defense > 93) { awards.push('DPOY'); dpoys++; }
+    // Scoring title — an elite-scoring season that leads the league. No other
+    // players are simulated, so approximate the league lead with a high PPG bar
+    // gated on being a star-caliber year (avoids handing it out in down years).
+    if (stats.ppg >= 28 && ovr >= leagueBest - 6) { awards.push('Scoring Champion'); scoringTitles++; }
 
     totals.points += Math.round(stats.ppg * gp);
     totals.rebounds += Math.round(stats.rpg * gp);
@@ -274,7 +278,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     seasonsPlayed: seasons.length,
     championships,
     finalsRecord: `${championships}-${finalsLosses}`,
-    mvps, finalsMvps, allStars, allNba, dpoys,
+    mvps, finalsMvps, allStars, allNba, dpoys, scoringTitles,
     peakOvr,
     totals,
   };

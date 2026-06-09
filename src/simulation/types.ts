@@ -83,6 +83,7 @@ export interface CareerSummary {
   allStars: number;
   allNba: number;
   dpoys: number;
+  scoringTitles: number;
   peakOvr: number;
   totals: { points: number; rebounds: number; assists: number; steals: number; blocks: number; games: number };
 }

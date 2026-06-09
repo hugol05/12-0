@@ -9,6 +9,10 @@ export interface StageSlot {
   label: string;
   /** category emoji/glyph, shown inside an empty ring so its purpose is always clear */
   icon?: string;
+  /** Easy mode: the rating the active player would give here — shown in the empty ring instead of the icon */
+  previewRating?: number;
+  /** overrides the numeric preview/badge with text (e.g. real height for the Height ring) */
+  valueText?: string;
   /** filled assignment, if any */
   fill?: {
     rating: number;
@@ -59,10 +63,14 @@ function Ring({ slot, area }: { slot: StageSlot; area: string }) {
           <img className="ring__face" src={slot.fill!.photoUrl} alt="" onError={() => setImgFailed(true)} />
         ) : filled ? (
           <span className="ring__initials">{initials(slot.fill!.playerName)}</span>
+        ) : slot.valueText != null && (slot.highlighted || slot.previewRating != null) ? (
+          <span className="ring__preview ring__preview--text">{slot.valueText}</span>
+        ) : slot.previewRating != null ? (
+          <span className="ring__preview">{slot.previewRating}</span>
         ) : (
           <span className="ring__icon" aria-hidden>{slot.icon}</span>
         )}
-        {filled && <span className="ring__rating">{slot.fill!.rating}</span>}
+        {filled && <span className="ring__rating">{slot.valueText ?? slot.fill!.rating}</span>}
       </button>
       <span className="ring__label">{slot.label}</span>
       {filled && <span className="ring__player">{slot.fill!.playerName}</span>}

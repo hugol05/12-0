@@ -1,0 +1,10 @@
+{
+  "$comment": "Name aliases so the 2K dataset joins to the box-score roster despite nickname/spelling differences. Without these, a star under a different name (e.g. box-score 'Anfernee Hardaway' vs 2K 'Penny Hardaway') would fail to match and get OVR-capped as filler. Format: '<2K name>': '<box-score name>'. Both sides are compared via normName. Grow this list whenever the capped-players report (build output) shows a star that should have matched. lastVerified 2026-06-08.",
+  "aliases": {
+    "Penny Hardaway": "Anfernee Hardaway",
+    "Ron Artest": "Metta World",
+    "Nene": "Nene Hilario",
+    "Nate Archibald": "Tiny Archibald",
+    "Darrel Griffith": "Darrell Griffith"
+  }
+}

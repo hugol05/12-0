@@ -111,6 +111,18 @@
 }
 .ring--open .ring__icon { opacity: 1; }
 
+/* Easy mode — the rating the active player would give, shown in place of the icon */
+.ring__preview {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-bold);
+  font-size: 1.35rem;
+  line-height: 1;
+  color: var(--gold-glow);
+  text-shadow: var(--shadow-gold);
+}
+/* the Height ring shows the real listed height (e.g. 7'1") instead of a rating number */
+.ring__preview--text { font-size: 0.95rem; letter-spacing: 0.01em; }
+
 .ring__face {
   width: 100%;
   height: 100%;

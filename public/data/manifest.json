@@ -1,18 +1,18 @@
 {
-  "dataVersion": "2026-06-08.1",
-  "generatedAt": "2026-06-08T00:28:54.724Z",
-  "sourceSummary": "BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern (2018-2023). Ratings = era-aware percentile formulas + curated overrides.",
+  "dataVersion": "2026-06-09.1",
+  "generatedAt": "2026-06-09T12:58:32.709Z",
+  "sourceSummary": "BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern. Ratings: 2K-style rated dataset (data-source/2k) is the source of truth where it covers a player; the remaining box-score tail uses era-aware formulas and is OVR-capped. Curated clutch (rings/legends) + name aliases.",
   "files": {
     "players.json": {
-      "hash": "d1d4fddd25e03561",
-      "bytes": 1697133
+      "hash": "34904cae80a16e0e",
+      "bytes": 1675563
     },
     "franchises.json": {
       "hash": "7eb057e3f1fca93d",
       "bytes": 5290
     },
     "roll-index.json": {
-      "hash": "de82408f9543372e",
+      "hash": "d2f579367cf6640d",
       "bytes": 46241
     }
   }

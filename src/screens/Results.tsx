@@ -6,6 +6,7 @@ import { useGameData } from '@/data/useGameData';
 import { encodeBuild, shareUrl } from '@/share/shareLink';
 import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { TeamBadge } from '@/components/TeamBadge';
+import { buildArchetype, formatHeight, nickname, parseHeightInches } from '@/lib/archetype';
 import type { SeasonResult } from '@/simulation/types';
 import './Results.css';
 
@@ -42,7 +43,10 @@ export default function Results() {
   const { career, finals, legacyTier, seasons, startingFranchise } = result;
   const startTeam = data?.franchisesById.get(startingFranchise)?.name ?? startingFranchise;
   const perfect = finals.perfect;
-  const nick = nickname(filled, seed ?? 0, perfect);
+  const heightPlayer = data?.playersById.get(assignments.find((a) => a.category === 'height')?.playerId ?? '');
+  const heightInches = parseHeightInches(heightPlayer?.height);
+  const nick = nickname(filled, seed ?? 0, perfect, heightInches);
+  const archetype = buildArchetype(filled, heightInches);
 
   const games = Math.max(1, career.totals.games);
   const avg = {
@@ -112,18 +116,20 @@ export default function Results() {
 
         <div className="poster__name">
           <span className="poster__nick">{nick}</span>
+          <span className="poster__archetype">{archetype} · {formatHeight(heightPlayer?.height)}</span>
           <span className="poster__tier">{legacyTier}{perfect && ' · RECORD BROKEN'}</span>
           <span className="poster__ovr">OVR <strong>{career.peakOvr}</strong></span>
         </div>
 
-        {/* awards as SVG medallions */}
+        {/* awards — clean count + label chips (no icons) */}
         <div className="poster__awards">
-          {career.championships > 0 && <AwardBadge count={career.championships} label="RINGS" kind="ring" />}
-          {career.mvps > 0 && <AwardBadge count={career.mvps} label="MVP" kind="mvp" />}
-          {career.finalsMvps > 0 && <AwardBadge count={career.finalsMvps} label="FMVP" kind="fmvp" />}
-          {career.dpoys > 0 && <AwardBadge count={career.dpoys} label="DPOY" kind="dpoy" />}
-          {career.allStars > 0 && <AwardBadge count={career.allStars} label="ALL-STAR" kind="allstar" />}
-          {career.allNba > 0 && <AwardBadge count={career.allNba} label="ALL-NBA" kind="allnba" />}
+          {career.championships > 0 && <Award count={career.championships} label="Rings" />}
+          {career.mvps > 0 && <Award count={career.mvps} label="MVP" />}
+          {career.finalsMvps > 0 && <Award count={career.finalsMvps} label="Finals MVP" />}
+          {career.scoringTitles > 0 && <Award count={career.scoringTitles} label="Scoring Title" />}
+          {career.dpoys > 0 && <Award count={career.dpoys} label="DPOY" />}
+          {career.allStars > 0 && <Award count={career.allStars} label="All-Star" />}
+          {career.allNba > 0 && <Award count={career.allNba} label="All-NBA" />}
         </div>
 
         {/* career averages */}
@@ -161,17 +167,16 @@ export default function Results() {
         {/* career journey — team identity + championships by franchise */}
         <Section title="Career Journey">
           <ul className="poster__journey">
-            {journey.map((st, i) => (
+            {journey.map((st) => (
               <li key={`${st.team}-${st.startIdx}`} className={`leg ${st.rings > 0 ? 'leg--champ' : ''}`}>
                 <TeamBadge franchiseId={st.team} abbreviation={abbr(st.team)} name={teamName(st.team)} size="sm" />
                 <span className="leg__name">{teamName(st.team)}</span>
                 <span className="leg__years">
                   {yearOf(st.startIdx)}{st.endIdx !== st.startIdx ? `–${String(yearOf(st.endIdx)).slice(2)}` : ''}
                 </span>
-                <span className="leg__meta">
-                  {i === 0 ? 'Drafted' : 'New team'}
-                  {st.rings > 0 && <span className="leg__rings"> · {st.rings}× ◆</span>}
-                </span>
+                {st.rings > 0 && (
+                  <span className="leg__meta"><span className="leg__rings">{st.rings}× ◆</span></span>
+                )}
               </li>
             ))}
           </ul>
@@ -197,7 +202,9 @@ export default function Results() {
                   <span className="dna__cat">{CAT_LABEL[a.category]}</span>
                   <span className="dna__player">{playerName(a.playerId)}</span>
                   <TeamBadge franchiseId={a.source.franchise} abbreviation={abbr(a.source.franchise)} name={teamName(a.source.franchise)} size="sm" className="dna__badge" />
-                  <span className="dna__rating">{a.rating}</span>
+                  <span className="dna__rating">
+                    {a.category === 'height' ? formatHeight(data?.playersById.get(a.playerId)?.height) : a.rating}
+                  </span>
                 </li>
               ))}
           </ul>
@@ -250,38 +257,11 @@ function Avg({ v, l }: { v: string; l: string }) {
   return <div className="avg"><span className="avg__v">{v}</span><span className="avg__l">{l}</span></div>;
 }
 
-type AwardKind = 'ring' | 'mvp' | 'fmvp' | 'dpoy' | 'allstar' | 'allnba';
-
-/**
- * SVG medallion award badge (no emoji). A gold shield with the count overlaid,
- * a small kind-specific glyph, and a label below. Screenshot-safe (pure SVG/CSS).
- */
-function AwardBadge({ count, label, kind }: { count: number; label: string; kind: AwardKind }) {
+/** A clean award tally — count over a label, no icon. */
+function Award({ count, label }: { count: number; label: string }) {
   return (
-    <div className={`award award--${kind}`}>
-      <svg viewBox="0 0 52 60" className="award__shield" aria-hidden focusable="false">
-        <defs>
-          <linearGradient id={`aw-${kind}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--gold-glow)" />
-            <stop offset="55%" stopColor="var(--gold-primary)" />
-            <stop offset="100%" stopColor="var(--gold-deep)" />
-          </linearGradient>
-        </defs>
-        <path
-          d="M26 2 L48 11 V30 C48 45 26 58 26 58 C26 58 4 45 4 30 V11 Z"
-          fill={`url(#aw-${kind})`}
-          stroke="var(--gold-glow)"
-          strokeWidth="1.5"
-          opacity="0.95"
-        />
-        <path
-          d="M26 6 L44 13 V30 C44 42 26 53 26 53 C26 53 8 42 8 30 V13 Z"
-          fill="none"
-          stroke="rgba(0,0,0,0.25)"
-          strokeWidth="1"
-        />
-      </svg>
-      <span className="award__count">{count}<span className="award__x">×</span></span>
+    <div className="award">
+      <span className="award__count">{count}</span>
       <span className="award__label">{label}</span>
     </div>
   );
@@ -341,31 +321,6 @@ const CAT_LABEL: Record<RatingCategory, string> = {
   rebounding: 'Rebounding', athleticism: 'Athleticism', basketballIq: 'IQ', clutch: 'Clutch',
   durability: 'Durability',
 };
-
-const NICKS: Record<RatingCategory, string[]> = {
-  shooting: ['The Sniper', 'Flamethrower', 'Splash God'],
-  height: ['The Tower', 'Skyscraper', 'The Monolith'],
-  playmaking: ['The Maestro', 'The Conductor', 'Point God'],
-  defense: ['The Wall', 'The Eraser', 'Lockdown'],
-  rebounding: ['Glass Cleaner', 'The Vacuum', 'The Beast'],
-  athleticism: ['The Freak', 'Highlight Reel', 'The Blur'],
-  basketballIq: ['The Professor', 'The General', 'The Oracle'],
-  clutch: ['The Closer', 'Mr. Big Shot', 'Ice Veins'],
-  durability: ['The Ironman', 'Evergreen', 'Mr. Reliable'],
-};
-
-function nickname(filled: Partial<Record<RatingCategory, number>>, seed: number, perfect: boolean): string {
-  if (perfect) return '"The Immortal"';
-  // standout category = highest rating (canonical order breaks ties)
-  let topCat: RatingCategory = 'clutch';
-  let topVal = -1;
-  for (const cat of [...CAT_ORDER, 'durability' as RatingCategory]) {
-    const v = filled[cat];
-    if (v != null && v > topVal) { topVal = v; topCat = cat; }
-  }
-  const pool = NICKS[topCat];
-  return `"${pool[Math.abs(seed) % pool.length]}"`;
-}
 
 function fmt(n: number): string {
   return n.toLocaleString('en-US');

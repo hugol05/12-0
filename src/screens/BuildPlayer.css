@@ -25,7 +25,7 @@
 .roll2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-areas: 'team era' 'rerolls rerolls';
+  grid-template-areas: 'team era' 'actions actions';
   gap: var(--space-2) var(--space-3);
   align-items: center;
   padding: var(--space-3);
@@ -50,27 +50,20 @@
 .roll2__team { grid-area: team; }
 .roll2__era { grid-area: era; }
 
-.slot__strip {
+/* one flipping cell — each new pick slides down from the top so the teams /
+   decades are clearly seen cycling past */
+.slot__cell {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
-  animation: slotSpin 0.42s linear infinite;
-  filter: blur(0.8px);
-  will-change: transform;
-}
-.slot__cell {
-  flex: 0 0 var(--slot-h);
-  height: var(--slot-h);
-  display: flex;
   align-items: center;
   justify-content: center;
-  /* slight vertical squash sells the motion-blur "distortion" while spinning */
-  transform: scaleY(1.12);
+  animation: slotStep 0.1s ease-out;
+  will-change: transform, opacity;
 }
-@keyframes slotSpin {
-  from { transform: translateY(0); }
-  to { transform: translateY(-50%); }
+@keyframes slotStep {
+  from { transform: translateY(-72%); opacity: 0.2; filter: blur(1.4px); }
+  to { transform: translateY(0); opacity: 1; filter: blur(0); }
 }
 
 .slot__final { animation: slotLand 0.34s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -90,12 +83,28 @@
 .roll2__decade--spin { color: var(--gold-deep); opacity: 0.9; }
 
 @media (prefers-reduced-motion: reduce) {
-  .slot__strip { animation: none; filter: none; }
-  .slot__cell { transform: none; }
+  .slot__cell { animation: none; filter: none; }
   .slot__final { animation: none; }
 }
 
-.roll2__rerolls { grid-area: rerolls; display: flex; gap: var(--space-2); }
+.roll2__actions { grid-area: actions; display: flex; gap: var(--space-2); }
+.rollbtn {
+  flex: 1;
+  padding: var(--space-3);
+  background: var(--gradient-gold);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--bg-void);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  box-shadow: var(--shadow-gold);
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+.rollbtn:hover:not(:disabled) { transform: translateY(-1px); }
+.rollbtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .reroll {
   flex: 1;
   padding: var(--space-2);
@@ -111,48 +120,39 @@
 .reroll:hover:not(:disabled) { border-color: var(--gold-primary); color: var(--gold-primary); }
 .reroll:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* ── active player's rating row ─────────────────────────────── */
-.ratingrow {
-  background: var(--bg-raised);
-  border: 1px solid var(--gold-soft);
+/* ── franchise-phase roll call-to-action ────────────────────── */
+.rollcta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-4);
+  background: var(--gradient-surface);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: var(--space-3);
-  box-shadow: var(--shadow-gold);
+  box-shadow: var(--shadow-card);
+  width: 100%;
 }
-.ratingrow__name { font-family: var(--font-display); font-weight: var(--weight-bold); font-size: var(--text-lg); }
-.ratingrow__name span { color: var(--text-secondary); font-weight: var(--weight-regular); font-size: var(--text-sm); }
-.ratingrow__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-2); }
-.chip {
+.rollcta__hint { font-size: var(--text-sm); color: var(--text-secondary); text-align: center; max-width: 34ch; }
+.rollcta__btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px var(--space-2);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-elevated);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: var(--gradient-gold);
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--bg-void);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-lg);
   cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
-}
-.chip__cat { font-size: var(--text-sm); }
-.chip__val { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); }
-.chip--open:hover { border-color: var(--gold-primary); transform: translateY(-1px); }
-.chip--open .chip__val { color: var(--gold-primary); }
-.chip--taken { opacity: 0.35; cursor: not-allowed; }
-.ratingrow__hint { margin-top: var(--space-2); font-size: var(--text-xs); color: var(--text-tertiary); }
-
-/* Normal / Hard: slim prompt instead of the full rating breakdown */
-.pickhint {
-  padding: var(--space-3);
-  background: var(--bg-raised);
-  border: 1px solid var(--gold-soft);
-  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-gold);
-  font-size: var(--text-sm);
-  color: var(--text-secondary);
-  text-align: center;
+  transition: transform var(--dur-instant) var(--ease-out);
 }
-.pickhint b { font-family: var(--font-display); font-weight: var(--weight-bold); color: var(--text-primary); }
-.pickhint span { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--silver); }
+.rollcta__btn span { font-family: var(--font-mono); font-size: var(--text-xs); opacity: 0.7; }
+.rollcta__btn:hover:not(:disabled) { transform: translateY(-1px); }
+.rollcta__btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── player list ───────────────────────────────────────────── */
 .pick__controls { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
@@ -171,11 +171,9 @@
 .pick__list { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 40vh; overflow-y: auto; }
 .player {
   width: 100%;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas: 'name pos' 'stats stats';
+  display: flex;
   align-items: center;
-  gap: 2px var(--space-3);
+  gap: var(--space-3);
   padding: var(--space-3);
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -188,9 +186,22 @@
 .player:hover { border-color: var(--gold-primary); }
 .player:active { transform: scale(0.99); }
 .player--active { border-color: var(--gold-primary); background: var(--bg-elevated); box-shadow: var(--shadow-gold); }
-.player__name { grid-area: name; font-weight: var(--weight-semibold); }
-.player__pos { grid-area: pos; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--silver); }
-.player__stats { grid-area: stats; font-size: var(--text-xs); color: var(--text-secondary); }
+.player__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.player__name { font-weight: var(--weight-semibold); }
+.player__stats { font-size: var(--text-xs); color: var(--text-secondary); }
+/* position + OVR — same size, same baseline, on the right of the row */
+.player__pos, .player__ovr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.player__ovr { padding-left: var(--space-3); border-left: 1px solid var(--border-subtle); }
+.player__pos b { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--text-primary); }
+.player__ovr b { font-family: var(--font-mono); font-size: var(--text-lg); font-weight: var(--weight-bold); color: var(--gold-primary); }
+.player__pos small, .player__ovr small { font-size: 0.55rem; letter-spacing: var(--tracking-wide); color: var(--text-tertiary); }
 
 /* ── starting-franchise panel ──────────────────────────────── */
 .franpanel {
