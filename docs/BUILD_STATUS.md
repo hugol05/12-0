@@ -38,7 +38,7 @@
 - Runs on a **Web Worker** (`simulation.worker.ts` + `runCareer.ts`), with a synchronous fallback for test/SSR.
 
 ### Game loop (Phases 4–6) — `src/screens/`
-- **Home** — logo, difficulty pills (Easy/Normal/Hard), "Build Your Legend" CTA, disabled "Rewriting History" v1.5 teaser.
+- **Home** — logo, difficulty pills (Easy/Normal/Hard), "Build Your Legend" CTA, disabled "Rewriting History" v2.0 teaser.
 - **BuildPlayer** — Roll → Pick → Place loop on real data: 10 placements (9 categories + 1 franchise), 2 re-rolls, roster filter/search, difficulty-gated info visibility, auto-rolls unused buckets.
 - **Preview** — hand-rolled SVG 8-axis radar (`components/RadarChart.tsx`), durability fuel bar, Built-With list, OVR readout, Simulate CTA.
 - **Simulate** — worker-driven season-by-season playback with a live rings/Finals counter and skip-to-results.

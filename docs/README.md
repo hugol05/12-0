@@ -77,7 +77,7 @@ The player-picking phase supports three information modes:
 | Mode | Description | Status |
 |------|-------------|--------|
 | **📖 New Chapter** | Career starts in 2026-27 on current rosters. Fully simulated future. | **v1.0 (ship first)** |
-| **🕰️ Rewriting History** | Career starts in the rolled decade. Real NBA history plays out around you. | v1.5 |
+| **🕰️ Rewriting History** | Career starts in the rolled decade. Real NBA history plays out around you. | v2.0 |
 
 ### Difficulty Target
 
@@ -136,8 +136,8 @@ rubber-bands to the player's strength. Measured on the real shipped pool
 | Version | What's Included |
 |---------|----------------|
 | **v1.0 (MVP)** | New Chapter mode, full roll→pick→place→simulate→results loop, PWA, share link |
-| **v1.5** | Rewriting History mode, Daily Challenge, share as image, localStorage leaderboard |
-| **v2.0** | Backend leaderboard, head-to-head mode, player profile / run history |
+| **v1.5** | Daily Challenge, share as image, localStorage leaderboard |
+| **v2.0** | Rewriting History mode, backend leaderboard, head-to-head mode, player profile / run history |
 
 ---
 

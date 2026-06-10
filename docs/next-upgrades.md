@@ -32,7 +32,7 @@ Same seeded rolls for everyone each UTC day; compare records with friends. The i
 ### 6. Leaderboard — **L**
 "Best record / highest OVR / longest dynasty." Start with a localStorage personal-best wall, then a backend (Vercel KV or Supabase) for global boards. Pairs naturally with Daily Challenge and the share funnel.
 
-### 7. Rewriting History mode (v1.5) — **L**
+### 7. Rewriting History mode (v2.0) — **L**
 The disabled Home teaser. Drop the built player into a historical league context. Largest engine surface-area change — needs era-scoped opponents and a different framing of "the record."
 
 ### 8. Build comparison / "vs." replays — **M**

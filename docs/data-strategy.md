@@ -348,7 +348,7 @@ public/data/
 ├── players.roll-index.json    # small roll-time lookup by franchise/decade
 ├── franchises.json            # all 30 franchises with v1.0 base ratings
 ├── decades.json               # roll buckets and eligible player IDs
-├── history.json               # real championship winners per season, v1.5
+├── history.json               # real championship winners per season, v2.0
 ├── records.json               # all-time records and comparison thresholds
 ├── events.json                # rare career event templates and labels
 └── nicknames.json             # generated nickname templates

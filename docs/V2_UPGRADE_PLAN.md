@@ -202,7 +202,7 @@ Each section is self-contained. The owner pastes the matching launcher prompt (s
 **Do:**
 1. **Navigation:** a consistent way back to Home from anywhere, and clear end-of-game nav (Play Again + Back to Home) — coordinate with WS5 on Results (WS5 owns the Results buttons; you own the Home target + any global nav affordance via WS2's `BackButton`). Ensure replay back-button returns Home cleanly (history seeding).
 2. **Onboarding:** a 3-card "how to play" overlay (Roll → Assign → Simulate) on first visit, dismissible, remembered in `localStorage`. `src/components/Onboarding.tsx`.
-3. **Home polish:** floating gold particles, gently-pulsing silhouette, premium CTA, difficulty pills with tooltips, the disabled Rewriting-History v1.5 teaser — all with WS2 fonts/motion. Inject personality (the owner wants more character).
+3. **Home polish:** floating gold particles, gently-pulsing silhouette, premium CTA, difficulty pills with tooltips, the disabled Rewriting-History v2.0 teaser — all with WS2 fonts/motion. Inject personality (the owner wants more character).
 4. **Router-level page transitions:** mount WS2's transition wrapper so route changes animate.
 
 **Don't:** edit other screens' internals (BuildPlayer/Preview/Simulate/Results bodies belong to WS4/WS5). Touch only `Home.*`, `router.tsx`, and the new `Onboarding.tsx`.

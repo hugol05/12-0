@@ -17,7 +17,7 @@ These are settled. Do not relitigate them mid-build; if one must change, update 
 | **Build order** | **Data-pipeline-first.** Real dataset → engine → UI. No hardcoded mock data; the UI is built against production-shaped data. |
 | **Data acquisition** | `stats.nba.com`/`nba_api` is IP-blocked in CI/sandbox, so shipped stats are ingested from **openly-licensed bulk datasets** (FiveThirtyEight CC BY 4.0 + a 1950→present per-game set), cached + attributed. `nba_api` is an optional local-only refresh. The 9 ratings are formula-derived + sourced curated overrides. See [Data Strategy → Acquisition Strategy](data-strategy.md#acquisition-strategy-how-we-get-comprehensive-rosters). |
 | **Bucket rule** | A franchise/decade combo is in the roll table only if it has **≥10 qualifying players** (2+ seasons for that franchise in that decade). One threshold — 10 — for inclusion, weighting, and validation. |
-| **v1.0 scope** | New Chapter mode only. Rewriting History is a disabled "Coming Soon" teaser, enabled in v1.5. See [Roadmap](roadmap.md). |
+| **v1.0 scope** | New Chapter mode only. Rewriting History is a disabled "Coming Soon" teaser, enabled in v2.0. See [Roadmap](roadmap.md). |
 | **Determinism** | Same build + `dataVersion` + `seed` ⇒ identical career. Simulation never calls `Math.random()` directly; it uses a seeded RNG passed through context. |
 | **Difficulty** | Easy / Normal / Hard control *information visible during the roll phase only* — never the simulation. Stored in share links. |
 | **Repo / deploy** | GitHub `hugol05/12-0`, auto-deploy to Vercel. |

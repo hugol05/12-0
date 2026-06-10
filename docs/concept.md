@@ -110,7 +110,7 @@ After picking a player, you see the unfilled categories and choose where to plac
 
 The starting franchise is a **dedicated final roll**, taken *after* all 9 attribute categories are filled — it is no longer something you can claim on an arbitrary roll. It rolls a **team only** and shows that team's masked profile (strength / age / market) so you can read a win-now vs. build-for-later landing spot before committing. It has its own single re-roll.
 - In **"New Chapter"** mode (v1.0): Your player joins that team in 2026-27 (the franchise roll carries no decade).
-- In **"Rewriting History"** mode (v1.5): the starting decade returns, so the franchise roll will also carry an era and your player joins that team in that decade.
+- In **"Rewriting History"** mode (v2.0): the starting decade returns, so the franchise roll will also carry an era and your player joins that team in that decade.
 
 ---
 
@@ -141,4 +141,4 @@ The starting franchise is a **dedicated final roll**, taken *after* all 9 attrib
 ### Why Two Modes?
 - **Rewriting History** is the nostalgia play — fans love "what if" scenarios. It's more shareable: *"I went 12-0 starting on the 2003 Cavs with LeBron as my teammate"*
 - **New Chapter** is simpler to implement and more forward-looking
-- **Ship "New Chapter" first** (v1), add "Rewriting History" (v1.5)
+- **Ship "New Chapter" first** (v1), add "Rewriting History" (v2.0)

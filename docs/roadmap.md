@@ -41,7 +41,6 @@
 | Easy / Normal / Hard player information modes | |
 
 ### v1.5 — Viral Features
-- "Rewriting History" mode
 - Daily Challenge
 - Share as image (canvas-rendered card)
 - Leaderboard (localStorage)
@@ -49,6 +48,7 @@
 - Rivalry callouts and rare career event highlights
 
 ### v2.0 — Social
+- "Rewriting History" mode
 - Backend leaderboard
 - Head-to-head mode
 - Player profile / run history

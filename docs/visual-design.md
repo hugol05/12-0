@@ -134,8 +134,8 @@ back/home control, ≥44px tap target, gold hover, visible focus ring).
 - Tagline: *"Can you break Bill Russell's record?"*
 - Difficulty selector: Pill buttons for **Easy** | **Normal** (default/highlighted) | **Hard**. (Brief tooltips on each. Once the game starts, difficulty is locked.)
 - Collapsible "How to Play" explainer below
-- **v1.0 ships New Chapter mode only.** Do not show a mode selector in v1.0 — the game goes straight into New Chapter. A disabled **[🕰️ Rewriting History — Coming Soon]** teaser may sit below the CTA, but it is not selectable until v1.5.
-- *(v1.5: enable the Rewriting History mode selector. v2: Daily Challenge banner, Leaderboard link.)*
+- **v1.0 ships New Chapter mode only.** Do not show a mode selector in v1.0 — the game goes straight into New Chapter. A disabled **[🕰️ Rewriting History — Coming Soon]** teaser may sit below the CTA, but it is not selectable until v2.0.
+- *(v2.0: enable the Rewriting History mode selector. v1.5: Daily Challenge banner, Leaderboard link.)*
 
 ### Screen 2: The Roll Phase (10 Rounds)
 

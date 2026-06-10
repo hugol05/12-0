@@ -210,7 +210,7 @@ old roster still reloads), OKC 95→87 (small + young: peaks, then the window cl
 in `seasonDrift()` in `src/simulation/career.ts`; `projectLeagueTrajectory()` exposes the
 per-franchise rating path for inspection (used by `career.test.ts`).
 
-### Rewriting History Mode (v1.5)
+### Rewriting History Mode (v2.0)
 
 - Real team ratings per season from historical data
 - Your player replaces the weakest starter, boosting team strength
