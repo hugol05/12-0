@@ -283,9 +283,15 @@ export default function BuildPlayer() {
         <p className="build__count">{placements}<span>/10</span></p>
       </header>
 
-      {/* ── centerpiece: silhouette + 9 category rings ── */}
-      <BuildStage slots={slots} ovr={ovrSoFar} className="build__stage" />
+      {/* ── centerpiece: silhouette + 9 category rings ──
+          Wrappers are `display:contents` on mobile (the column stays a clean
+          single stack, byte-for-byte unchanged) and become the two desktop
+          columns at ≥1024px — see BuildPlayer.css. */}
+      <div className="build__stage-col">
+        <BuildStage slots={slots} ovr={ovrSoFar} className="build__stage" />
+      </div>
 
+      <div className="build__panel">
       {phase === 'franchise' ? (
         <FranchisePanel
           fr={startRoll}
@@ -360,6 +366,7 @@ export default function BuildPlayer() {
           )}
         </>
       )}
+      </div>
     </main>
   );
 }

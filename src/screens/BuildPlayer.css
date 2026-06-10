@@ -11,32 +11,57 @@
 .build--center { align-items: center; justify-content: center; }
 .muted { color: var(--text-secondary); font-size: var(--text-sm); }
 
-/* ── Wide desktop: silhouette/rings on the left, the roll + roster panel on the
-   right, so building uses the full width instead of a tall mobile scroll. ── */
+/* The stage / panel wrappers are invisible on mobile — their children flow
+   directly into the single .build column exactly as before. They only become
+   real boxes (the two desktop columns) at ≥1024px. */
+.build__stage-col,
+.build__panel {
+  display: contents;
+}
+
+/* ── Wide desktop: two real columns — the ring bracket on the left, and a single
+   right-hand panel that stacks the roll controls + roster together (so the roster
+   sits right under the roll box instead of being pushed down by the tall stage). ── */
 @media (min-width: 1024px) {
   .build:not(.build--center) {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(360px, 0.82fr) minmax(420px, 1fr);
     align-items: start;
-    column-gap: clamp(1.5rem, 4vw, 3.5rem);
+    column-gap: clamp(2rem, 4vw, 3.5rem);
     max-width: var(--app-col-wide);
+    /* the column itself never scrolls; the roster scrolls internally */
+    min-height: 100dvh;
   }
   .build__head { grid-column: 1 / -1; padding-right: 0; }
-  /* Cap + center the ring bracket so it stays tight around the silhouette instead
-     of spreading its 3 columns across the whole left half of the screen. */
-  .build__stage {
+
+  /* left column: the ring bracket, capped so it hugs the silhouette and centered
+     vertically against the (usually taller) right panel. */
+  .build__stage-col {
+    display: flex;
     grid-column: 1;
-    align-self: center;
-    justify-self: center;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+  }
+  .build__stage {
     width: 100%;
-    max-width: 420px;
-    position: sticky;
-    top: var(--space-6);
+    max-width: 440px;
     margin: 0;
   }
-  .roll2, .pick, .franpanel { grid-column: 2; justify-self: stretch; }
+
+  /* right column: one flex stack — roll controls, then the roster directly below,
+     top-aligned and independent of the stage's height. */
+  .build__panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    grid-column: 2;
+    min-width: 0;
+    align-self: start;
+  }
+  .build__panel .pick { display: flex; flex-direction: column; min-height: 0; }
   /* the roster can breathe — taller list, less in-list scroll */
-  .pick__list { max-height: 56vh; }
+  .pick__list { max-height: 64vh; }
 }
 
 /* ── header / progress ─────────────────────────────────────── */
