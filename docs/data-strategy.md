@@ -227,17 +227,21 @@ track real career length — Vince Carter played 27 seasons but 2K rates his dur
 Duncan's ~19 seasons and 98 durability are roughly in line, but Derrick Rose's 17 injury-marred
 seasons would over-rate at 2K's 83).
 
-Instead, durability is **`durabilityFromYears(seasonsPlayed)`** (`src/simulation/durability.ts`)
+Instead, durability is **`durabilityFromYears(effectiveYears)`** (`src/simulation/durability.ts`)
 — the exact inverse of the engine's `yearsFromDurability` curve that turns a build's durability
-rating into a career length (`src/simulation/career.ts`). `seasonsPlayed` is the player's real
-count of NBA seasons from the box-score aggregates. A small `gamesAdj = clamp((avgG−65)·0.3,
-−8, 6)` nudges the result up/down for "ironman vs. injury-prone despite many years" flavor (avgG
-= average games played per season). Final value clamped to 25-99.
+rating into a career length (`src/simulation/career.ts`). `effectiveYears` is normally
+`seasonsPlayed`, the player's real count of NBA seasons from the box-score aggregates — **but**
+the box-score history caps at the **2022-23 season**, so a still-active player's `seasonsPlayed`
+undercounts their real tenure (Curry: 13 box-score seasons vs. ~17 real years as of 2025-26). When
+the player has a 2K card with a populated `years_in_the_nba` greater than `seasonsPlayed`, that
+value is used instead. A small `gamesAdj = clamp((avgG−65)·0.3, −8, 6)` then nudges the result
+up/down for "ironman vs. injury-prone despite many years" flavor (avgG = average games played per
+season, from box-score data). Final value clamped to 25-99.
 
 This makes durability **round-trip**: feed a Frankenstein build LeBron's durability (≈98) and the
 engine's `yearsFromDurability` reproduces a ~LeBron-length (~20yr) career. Players whose 2K card
 exists still get `mapSkills`' other 6 categories + clutch/height from 2K — only durability is
-overridden with this seasons-played-derived value.
+overridden with this years-derived value.
 
 For the ~185 "added 2020s" players who aren't in the box-score roster (current players the
 box-score history doesn't reach), `seasonsPlayed` doesn't exist — these use 2K's

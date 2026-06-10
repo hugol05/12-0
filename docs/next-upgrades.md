@@ -52,7 +52,10 @@ The engine already stores intermediate values (season OVR, team rating, playoff 
 `franchises.json` base ratings are derived, not hand-curated (MASTER_PLAN open question #2). Hand-set 65–90 per team from current standings/projections so "Started on the …" carries real weight.
 
 ### 12. Monte Carlo CI guard — **S**
-Promote the difficulty-band test to a nightly/slow CI job that fails if perfect-rate drifts out of band after data or formula changes. Protects the calibrated 22%/6.5%/0.3% bands from silent regressions.
+Promote `_balanceProbe.test.ts` (currently on-demand, `BALANCE=1`) to a nightly/slow CI job that
+fails if the named-build/play-tier 12-0 rates drift out of the calibrated bands (94-OVR ~5%,
+optimal ~10%, god build ~86% — see [BALANCE_2K.md §6](BALANCE_2K.md)) after data or formula
+changes. Also keep the synthetic uniform bands in `career.test.ts` monotonic as a fast guard.
 
 ---
 

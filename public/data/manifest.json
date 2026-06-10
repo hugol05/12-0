@@ -1,10 +1,10 @@
 {
   "dataVersion": "2026-06-10.1",
-  "generatedAt": "2026-06-10T00:34:12.965Z",
+  "generatedAt": "2026-06-10T00:48:07.637Z",
   "sourceSummary": "BR-derived history (peasant98/TheNBACSV 1950-2017) + Brescou MIT modern. Ratings: 2K-style rated dataset (data-source/2k) is the source of truth where it covers a player; the remaining box-score tail uses era-aware formulas and is OVR-capped. Curated clutch (rings/legends) + name aliases.",
   "files": {
     "players.json": {
-      "hash": "ac6db10dda6ad87f",
+      "hash": "08911cccd6c52377",
       "bytes": 1769388
     },
     "franchises.json": {

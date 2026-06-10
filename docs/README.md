@@ -81,10 +81,19 @@ The player-picking phase supports three information modes:
 
 ### Difficulty Target
 
-- Perfect rolls (all 95+): ~20% chance of 12-0
-- Great rolls (avg 90+): ~5-8% chance
-- Good rolls (avg 85+): <1% chance
-- Typical great build: 4-10 championships, 1-3 Finals losses
+A **two-axis** model (see [`BALANCE_2K.md` §6](BALANCE_2K.md) for the full calibration):
+**total rings scale with OVR** (reaching the Finals repeatedly is the OVR-gated grind), while
+**12-0 vs. 12-X (Finals losses) scale with Clutch**, decided by a near-peer Finals opponent that
+rubber-bands to the player's strength. Measured on the real shipped pool
+(`BALANCE=1 npx vitest run src/simulation/_balanceProbe.test.ts`):
+
+- **A strong-but-not-elite build (~94 OVR, 95 Clutch)**: ~7-8 rings/career, **~5% 12-0**.
+- **Optimal play (best-in-bucket pick + top-5 franchise, ~92 OVR/~93 Clutch)**: ~6 rings/career, **~10% 12-0**.
+- **God build (98 OVR / 99 Clutch)**: ~12 rings/career, **~86% 12-0**.
+- **Perfect build (global-max every category)**: **~88-89% 12-0**.
+- Champion seasons average **~56-65 wins** (real-NBA-like); 70-win seasons are rare (~3% for the
+  94-OVR build) and 74+ ("breaking 73-9") only realistic for god-tier builds (~4%/season, ~50%
+  career chance).
 
 ---
 
@@ -109,7 +118,7 @@ The player-picking phase supports three information modes:
 | Animations | Framer Motion |
 | Routing | React Router |
 | State | zustand |
-| Data | Static JSON (pre-built from Python/nba_api), served from `public/data/` |
+| Data | Static JSON, pre-built by a TypeScript pipeline (`scripts/data/build.ts`, `npm run data`), served from `public/data/` |
 | Engine | Deterministic TypeScript simulator in `src/simulation/`, run in a Web Worker |
 | Tests | Vitest (engine + Monte Carlo balance), pytest (data pipeline) |
 | PWA | vite-plugin-pwa (Workbox) |
@@ -142,6 +151,7 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Nicknames & Archetypes](nicknames.md) | How the player's archetype label and nickname are generated |
 | [Visual Design](visual-design.md) | Color palette, typography, design elements, animations, screen-by-screen UI flow |
 | [Data Strategy](data-strategy.md) | Data pipeline, source-backed gaps, JSON structure, validation, player coverage, photo sources |
+| [Balance vs. 2K Ratings](BALANCE_2K.md) | Why the 2K-style ratings made 12-0 too easy, and the shipped two-axis difficulty calibration (current source of truth for difficulty numbers) |
 | [Tech Stack & Architecture](tech-stack.md) | Frontend stack, PWA setup, repository structure, deployment |
 | [Social Features & Roadmap](roadmap.md) | Daily Challenge, leaderboard, scope/phasing, implementation order |
 | [Pre-Mortem](pre-mortem.md) | Product risks, balancing concerns, and upgrade ideas |

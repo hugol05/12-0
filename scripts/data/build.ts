@@ -356,19 +356,28 @@ async function main(): Promise<void> {
     // Height: anchored to listed inches (tallest=99, 7'0">=90, 6'9"~84). Hidden from the user as a
     // number (shown as real height + folded into the archetype) but still feeds OVR (.08).
     const height = heightRating(a.p.heightIn);
+    // ---- 2K-style rated dataset = rating source of truth wherever it covers the player ----
+    const tw = twokMap.get(a.p.key);
+
     // Durability = how long this player ACTUALLY played, expressed on the engine's scale via the
     // inverse of yearsFromDurability (career.ts/durability.ts) — so giving your build a real
     // player's durability reproduces roughly that player's real career length (give your build
     // LeBron's durability and you get a LeBron-length career). avgG (games/season) nudges it +/-
     // for "ironman vs. injury-prone despite many years" flavor, which also feeds the engine's
     // per-season injury risk.
+    // The box-score history caps at the 2022-23 season, so still-active players' `seasonsPlayed`
+    // undercounts their real tenure by however many seasons they've played since (e.g. Curry:
+    // 13 box-score seasons vs. ~17 real years as of 2025-26). 2K's `years_in_the_nba` (current
+    // as of the 2K card's release) closes that gap when it's bigger than our box-score count.
+    const yearsInNbaRaw = tw ? Number(tw.raw['years_in_the_nba']) : NaN;
+    const effectiveYears = Number.isFinite(yearsInNbaRaw) && yearsInNbaRaw > a.seasonsPlayed
+      ? yearsInNbaRaw
+      : a.seasonsPlayed;
     const gamesAdj = clamp((a.avgG - 65) * 0.3, -8, 6);
-    const durability = clamp(Math.round(durabilityFromYears(a.seasonsPlayed) + gamesAdj), 25, 99);
+    const durability = clamp(Math.round(durabilityFromYears(effectiveYears) + gamesAdj), 25, 99);
 
     const ratings: Record<string, number> = { shooting, height, playmaking, defense, rebounding, athleticism, basketballIq, clutch, durability };
 
-    // ---- 2K-style rated dataset = rating source of truth wherever it covers the player ----
-    const tw = twokMap.get(a.p.key);
     let archetype: string | undefined;
     let wingspanIn: number | undefined;
     const positions: Pos[] = [a.p.pos];
