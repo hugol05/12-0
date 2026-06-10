@@ -140,10 +140,10 @@ export default function Home() {
 
             <button className="cta home__cta" onClick={start}>Chase the Record</button>
 
-            <button className="home__teaser" disabled title="Coming in v1.5">
+            <button className="home__teaser" disabled title="Coming in v2.0">
               <Clock size={15} aria-hidden="true" />
               Rewriting History
-              <span className="home__teaser-badge"><Lock size={11} aria-hidden="true" />v1.5</span>
+              <span className="home__teaser-badge"><Lock size={11} aria-hidden="true" />v2.0</span>
             </button>
 
             <button className="home__howto" onClick={() => setShowOnboarding(true)}>How to play</button>

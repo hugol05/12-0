@@ -1,5 +1,7 @@
-/* Onboarding — first-run "how to play" overlay (WS6).
-   Full-screen scrim + a single stepper card, OLED-dark with gold accents. */
+/* Onboarding — first-run intro (roll-cycle variant).
+   Full-screen scrim + a single panel that plays the core loop: a reel lands on a
+   franchise + era, a player chip pops and flies onto a ring. Three quick cycles,
+   then one CTA. */
 
 .onboarding {
   position: fixed;
@@ -8,30 +10,30 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--safe-top) + var(--space-6)) var(--space-6)
+  padding: calc(var(--safe-top) + var(--space-6)) var(--space-5)
     calc(var(--safe-bottom) + var(--space-6));
 }
 
 .onboarding__scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: none;
   cursor: pointer;
 }
 
-.onboarding__card {
+.onboarding__panel {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-8) var(--space-6) var(--space-6);
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-5) var(--space-5);
   border-radius: var(--radius-lg);
   background: var(--gradient-surface);
   border: 1px solid var(--border-strong);
@@ -50,115 +52,167 @@
   border-radius: var(--radius-full);
   color: var(--text-tertiary);
   transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  z-index: 2;
 }
-
 .onboarding__close:hover {
   color: var(--text-primary);
   background: var(--bg-raised);
 }
-
 .onboarding__close:focus-visible {
   outline: 2px solid var(--gold-glow);
   outline-offset: 2px;
 }
 
-/* Step content — fixed min-height so the card doesn't jump as steps swap. */
-.onboarding__step {
+/* ── Roll reel ── */
+.onboarding__reel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: var(--space-3);
-  min-height: 188px;
+  gap: var(--space-1);
 }
-
-.onboarding__icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: var(--space-1);
-  border-radius: var(--radius-full);
-  color: var(--gold-glow);
-  background: var(--gold-soft);
-  border: 1px solid var(--gold-soft);
-  box-shadow: var(--shadow-gold);
-}
-
-.onboarding__kicker {
+.onboarding__reel-eyebrow {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-eyebrow);
   text-transform: uppercase;
   color: var(--gold-primary);
 }
-
-.onboarding__title {
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  color: var(--text-primary);
-}
-
-.onboarding__body {
-  font-size: var(--text-sm);
-  line-height: 1.55;
-  color: var(--text-secondary);
-}
-
-.onboarding__dots {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.onboarding__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--border-strong);
-  transition: background var(--dur-fast) var(--ease-out), width var(--dur-fast) var(--ease-out);
-}
-
-.onboarding__dot.is-active {
-  width: 22px;
-  background: var(--gold-primary);
-}
-
-.onboarding__dot:focus-visible {
-  outline: 2px solid var(--gold-glow);
-  outline-offset: 3px;
-}
-
-.onboarding__actions {
+.onboarding__reel-window {
+  position: relative;
+  height: 2.4rem;
+  min-width: 220px;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  width: 100%;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--gold-soft);
+  background: rgba(8, 9, 12, 0.6);
+  box-shadow: var(--shadow-gold);
+}
+.onboarding__reel-strip {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+}
+.onboarding__reel-item {
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--text-tertiary);
+}
+.onboarding__reel-item--final {
+  color: var(--gold-glow);
+}
+.onboarding__reel-final {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--gold-glow);
 }
 
-.onboarding__skip {
-  padding: var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
-  color: var(--text-secondary);
+/* ── Pick chip ── */
+.onboarding__chip-track {
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.onboarding__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-full);
-  transition: color var(--dur-fast) var(--ease-out);
+  background: var(--bg-elevated);
+  border: 1px solid var(--gold-soft);
+  box-shadow: var(--shadow-gold);
 }
-
-.onboarding__skip:hover {
+.onboarding__chip-name {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
   color: var(--text-primary);
 }
+.onboarding__chip-cat {
+  font-size: 0.7rem;
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold-primary);
+}
 
-.onboarding__next {
-  flex: 1;
+/* ── Place: ring grid ── */
+.onboarding__stage {
+  width: 100%;
+}
+.onboarding__stage-grid {
+  pointer-events: none; /* intro is non-interactive; rings are display-only */
+}
+.onboarding .ring--open .ring__disc {
+  animation: onboarding-pulse 0.7s var(--ease-inout) infinite;
+}
+@keyframes onboarding-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(214, 178, 92, 0.18), var(--shadow-gold); }
+  50% { box-shadow: 0 0 0 6px rgba(214, 178, 92, 0.4), var(--shadow-gold); }
+}
+
+/* ── Footer: live Roll·Pick·Place tracker → CTA ── */
+.onboarding__footer {
+  width: 100%;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.onboarding__steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+}
+.onboarding__stepword {
+  color: var(--text-tertiary);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+.onboarding__stepword.is-active {
+  color: var(--gold-glow);
+  text-shadow: var(--shadow-gold);
+}
+.onboarding__stepdot {
+  color: var(--border-strong);
+}
+
+.onboarding__cta-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+.onboarding__resolve {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.onboarding__cta {
+  width: 100%;
   font-size: var(--text-base);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .onboarding__close,
-  .onboarding__skip,
-  .onboarding__dot {
+  .onboarding__stepword {
     transition: none;
+  }
+  .onboarding .ring--open .ring__disc {
+    animation: none;
   }
 }
