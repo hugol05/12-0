@@ -18,6 +18,7 @@
     "data": "npm run data:build && npm run data:validate"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "framer-motion": "^11.11.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^0.469.0",
