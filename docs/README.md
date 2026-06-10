@@ -88,7 +88,10 @@ rubber-bands to the player's strength. Measured on the real shipped pool
 (`BALANCE=1 npx vitest run src/simulation/_balanceProbe.test.ts`):
 
 - **A strong-but-not-elite build (~94 OVR, 95 Clutch)**: ~8 rings/career, **~7% 12-0**.
-- **Optimal play (best-in-bucket pick + top-5 franchise, ~92 OVR/~93 Clutch)**: ~7 rings/career, **~13% 12-0**.
+- **Optimal play (best-in-bucket pick + top-5 franchise, ~92 OVR/~93 Clutch)**: ~6 rings/career, **~10% 12-0**.
+- **Clutch alone is not enough:** the clutch Finals bonus is **gated by OVR** (full only by ~94 OVR),
+  so a high-clutch / mediocre-OVR build can't sweep titles — a 91-OVR/99-Clutch "clutch merchant"
+  goes 12-0 **<1%** of the time. 12-0 requires elite OVR *and* elite Clutch.
 - **God build (98 OVR / 99 Clutch)**: ~12 rings/career, **~86% 12-0**.
 - **Perfect build (global-max every category)**: **~88-89% 12-0**.
 - Champion seasons average **~56-65 wins** (real-NBA-like); 70-win seasons are rare (~3% for the
@@ -154,6 +157,7 @@ Each area of the project has its own detailed doc. **Read the overview above fir
 | [Balance vs. 2K Ratings](BALANCE_2K.md) | Why the 2K-style ratings made 12-0 too easy, and the shipped two-axis difficulty calibration (current source of truth for difficulty numbers) |
 | [Tech Stack & Architecture](tech-stack.md) | Frontend stack, PWA setup, repository structure, deployment |
 | [Social Features & Roadmap](roadmap.md) | Daily Challenge, leaderboard, scope/phasing, implementation order |
+| [Launch Playbook](LAUNCH.md) | First-week go-to-market: pre-launch checklist, the launch tweet + variants, channel priority (82-0 replies, Reddit, Show HN), 48-hour cadence, what to measure |
 | [Pre-Mortem](pre-mortem.md) | Product risks, balancing concerns, and upgrade ideas |
 | [Build Status](BUILD_STATUS.md) | What is implemented and verified right now, per phase, with evidence |
 | [Next Upgrades](next-upgrades.md) | Engineering upgrade backlog (post-v1.0 core), tiered by leverage |

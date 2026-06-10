@@ -203,6 +203,32 @@ unchanged** and champion seasons still average a real-NBA-like ~60-64 wins. Tuna
 of `career.ts`: `FRANCHISE_WEIGHT_YOUNG` (0.64), `FRANCHISE_WEIGHT_PRIME` (0.40),
 `FRANCHISE_CARRY_UNTIL_AGE` (26).
 
+### Clutch-merchant fix — OVR gate on the clutch bonus (2026-06-10, round 5)
+**Problem reported:** an owner went 12-0 with a **91-OVR / 99-clutch** build ("manually edited
+attributes", random play). The probe confirmed it was systematic, not luck: that build went **12-0
+21.5%** of the time — *more often* than the real 94-OVR build (7.2%) — with only 0.11 avg Finals
+losses. Root cause: because the Finals opponent rubber-bands to a near-peer, the Finals is decided
+almost entirely by **clutch**, so a maxed clutch (+0.50) wins rings regardless of OVR, and 91 OVR is
+plenty to *reach* the Finals over a long (durability-95, 18-season) career. Clutch alone bought 12-0,
+defeating the "12-0 needs a genuine god build" intent.
+
+**Fix:** the clutch Finals/conf-finals bonus is now multiplied by an **OVR gate**
+(`ovrClutchGate(peakOvr) = clamp((peakOvr − 89)/5, 0.1, 1)` in `career.ts`): it ramps from ~0.1 at
+89 OVR to **full by 94 OVR**. So 12-0 now requires **elite OVR *and* elite clutch**, not clutch
+alone. New scenario `BUILD_CLUTCH_MERCHANT` added to `_balanceProbe.test.ts` as a regression guard.
+
+| Scenario | 12-0 before | 12-0 after | rings | avg Finals losses |
+|---|--:|--:|--:|--:|
+| Clutch merchant (91-OVR / 99-clutch) | **21.5%** | **0.6%** | 8.75 → 6.05 | 0.11 → 1.30 |
+| Owner 94-OVR (clutch 95) | 7.2% | **7.2%** (gate = 1.0) | 8.25 | 0.98 |
+| God build (98 / 99) | 87.3% | **87.3%** (unchanged) | 11.96 | 0.12 |
+| Perfect (global-max) | 89.1% | **89.1%** (unchanged) | 12.0 | 0.12 |
+| Optimal play (~92 OVR) | 13.4% | **10.4%** (gated, back on ~10% target) | 6.33 | 1.57 |
+
+The gate only bites in the 89-94 OVR range (full by 94), so the calibrated 94-OVR and god/perfect
+builds are untouched, the bad-play floor stays 0, and sub-elite builds now genuinely have to develop
+elite OVR — not just stack clutch — to chase a perfect run.
+
 **Note:** the owner 94-OVR build's avg rings/12-0 dropped from the prior calibration (9.4/28%/11%
 → 7.7/8.9%/5.0%) purely because its career is now ~6 seasons shorter (22.9 → 17.2) — the
 *per-season* ring rate is essentially unchanged (41% → 45%). The god build (whose career length is

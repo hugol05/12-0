@@ -107,12 +107,16 @@ function fixedBuild(r: Ratings): (s: { v: number }) => Build {
 const BUILD_94: Ratings = { shooting: 96, height: 88, playmaking: 88, defense: 99, rebounding: 98, athleticism: 92, basketballIq: 99, clutch: 95, durability: 90 };
 // A true "god build": elite at everything incl. 99 clutch. Target: ~90% to go 12-0 with monster stats.
 const BUILD_GOD: Ratings = { shooting: 98, height: 96, playmaking: 97, defense: 99, rebounding: 99, athleticism: 97, basketballIq: 98, clutch: 99, durability: 97 };
+// "Clutch merchant" — owner's reported 91-OVR run that went 12-0: only ~91 OVR but maxed clutch/IQ.
+// Target AFTER fix: 12-0 should be near-impossible (<~2%); elite clutch alone must not buy titles.
+const BUILD_CLUTCH_MERCHANT: Ratings = { shooting: 90, height: 83, playmaking: 95, defense: 82, rebounding: 94, athleticism: 86, basketballIq: 99, clutch: 99, durability: 95 };
 
 // On-demand balance harness — excluded from the normal suite. Run with:
 //   BALANCE=1 npx vitest run src/simulation/_balanceProbe.test.ts
 describe.runIf(!!process.env.BALANCE)('balance probe (real pool + real engine)', () => {
   it('named builds — target: 94-OVR ~8-11 rings/0-5 losses/12-0 ~14%; god ~90% 12-0', () => {
     run(fixedBuild(BUILD_94), 4000, `OWNER 94-OVR (clutch 95)  computeOvr=${computeOvr(BUILD_94)}`);
+    run(fixedBuild(BUILD_CLUTCH_MERCHANT), 4000, `CLUTCH MERCHANT (91-OVR/99-clutch) computeOvr=${computeOvr(BUILD_CLUTCH_MERCHANT)}`);
     run(fixedBuild(BUILD_GOD), 4000, `GOD BUILD (clutch 99)     computeOvr=${computeOvr(BUILD_GOD)}`);
     run(perfectBuild, 4000, 'PERFECT (global-max each cat)');
     expect(true).toBe(true);

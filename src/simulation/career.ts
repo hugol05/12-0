@@ -76,6 +76,16 @@ function retirementAge(durability: number, rng: SeededRng): number {
 // Clutch is THE separator for deep playoff runs. The curve is steep at the top: only a near-perfect
 // clutch rating pushes a Finals series toward the ~0.95 win-prob needed to string 12 titles together,
 // while a merely-very-good clutch (90) gets only a small nudge and a poor one is actively penalised.
+// 12-0 must require elite OVR *and* elite clutch — not clutch alone. Because the Finals opponent
+// rubber-bands to a near-peer, a high-clutch / mediocre-OVR "clutch merchant" (e.g. 91 OVR / 99
+// clutch) was sweeping titles purely on the clutch bonus (measured ~21% 12-0, more than a real
+// 94-OVR build). So the clutch bonus is scaled by peak OVR: it ramps from nearly nothing at 89 OVR
+// to full by ~94, so a build must *also* be elite to convert clutch into rings. Builds at/above 94
+// (incl. the calibrated 94-OVR and god builds) are unaffected.
+function ovrClutchGate(peakOvr: number): number {
+  return clamp((peakOvr - 89) / 5, 0.1, 1);
+}
+
 function clutchFinalsBonus(clutch: number): number {
   if (clutch >= 99) return 0.50;
   if (clutch >= 97) return 0.40;
@@ -187,6 +197,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
   const peakOvr = computeOvr(ratings);
   const durability = ratings.durability;
   const clutch = ratings.clutch;
+  const clutchGate = ovrClutchGate(peakOvr); // elite-OVR requirement on the clutch bonus (see fn)
   const retireAge = retirementAge(durability, rng);
 
   // league model: every franchise gets a rating that drifts along a market/youth trajectory
@@ -251,7 +262,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
       for (let round = 0; round < 4 && alive; round++) {
         const isFinals = round === 3;
         const isConfFinals = round === 2;
-        const bonus = isFinals ? clutchFinalsBonus(clutch) : isConfFinals ? clutchFinalsBonus(clutch) / 2 : 0;
+        const bonus = (isFinals ? clutchFinalsBonus(clutch) : isConfFinals ? clutchFinalsBonus(clutch) / 2 : 0) * clutchGate;
         const oppBase = Math.max(ROUND_OPP[round], strength - ROUND_RUBBER_GAP[round]);
         const opp = clamp(oppBase + rng.range(-3, 3), 55, 99);
         const prob = seriesWinProb(strength, opp, bonus);

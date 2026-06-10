@@ -146,6 +146,11 @@ seriesWinProb = clamp(0.5 + (ourStrength - oppStrength) * 0.045 + clutchBonus, 0
   within 3 of the player's own strength, so the Finals is decided almost entirely by **clutch**, not a
   strength edge. This is robust to future rating inflation.
 - **`clutchBonus`** applies in the Finals (and half in the Conference Finals) — see the table below.
+  It is **scaled by an OVR gate** (`ovrClutchGate(peakOvr) = clamp((peakOvr − 89)/5, 0.1, 1)`): the
+  clutch bonus ramps from nearly nothing at 89 OVR to full by ~94. This stops a high-clutch /
+  mediocre-OVR "clutch merchant" from sweeping titles on clutch alone (a 91-OVR/99-clutch build went
+  12-0 ~21% of the time before the gate; ~0.6% after). 12-0 therefore requires **elite OVR *and*
+  elite clutch** — builds at/above ~94 OVR (the calibrated 94-OVR build and god builds) are unaffected.
 
 ---
 
