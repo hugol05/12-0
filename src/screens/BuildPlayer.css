@@ -16,20 +16,25 @@
 @media (min-width: 1024px) {
   .build:not(.build--center) {
     display: grid;
-    grid-template-columns: 1.05fr 0.95fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
     column-gap: clamp(1.5rem, 4vw, 3.5rem);
     max-width: var(--app-col-wide);
   }
   .build__head { grid-column: 1 / -1; padding-right: 0; }
+  /* Cap + center the ring bracket so it stays tight around the silhouette instead
+     of spreading its 3 columns across the whole left half of the screen. */
   .build__stage {
     grid-column: 1;
     align-self: center;
+    justify-self: center;
+    width: 100%;
+    max-width: 420px;
     position: sticky;
     top: var(--space-6);
     margin: 0;
   }
-  .roll2, .pick, .franpanel { grid-column: 2; }
+  .roll2, .pick, .franpanel { grid-column: 2; justify-self: stretch; }
   /* the roster can breathe — taller list, less in-list scroll */
   .pick__list { max-height: 56vh; }
 }

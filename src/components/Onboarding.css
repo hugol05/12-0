@@ -17,29 +17,33 @@
 .onboarding__scrim {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   border: none;
   cursor: pointer;
 }
 
+/* A compact, obviously-dismissible card (not a full screen). Generous, even
+   padding all around so nothing rides the border. */
 .onboarding__panel {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 348px;
+  max-height: calc(100dvh - var(--space-7));
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-5) var(--space-5);
+  gap: var(--space-2);
+  padding: var(--space-6);
   border-radius: var(--radius-lg);
   background: var(--gradient-surface);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-elevated);
 }
 
+/* High-contrast close affordance so it reads as "you can dismiss this". */
 .onboarding__close {
   position: absolute;
   top: var(--space-3);
@@ -47,16 +51,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-full);
-  color: var(--text-tertiary);
-  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
   z-index: 2;
 }
 .onboarding__close:hover {
-  color: var(--text-primary);
-  background: var(--bg-raised);
+  color: var(--bg-void);
+  background: var(--gold-primary);
+  border-color: var(--gold-primary);
 }
 .onboarding__close:focus-visible {
   outline: 2px solid var(--gold-glow);
@@ -79,8 +86,8 @@
 }
 .onboarding__reel-window {
   position: relative;
-  height: 2.4rem;
-  min-width: 220px;
+  height: 2.2rem;
+  min-width: 190px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -116,7 +123,7 @@
 
 /* ── Pick chip ── */
 .onboarding__chip-track {
-  height: 58px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -151,7 +158,18 @@
 }
 .onboarding__stage-grid {
   pointer-events: none; /* intro is non-interactive; rings are display-only */
+  max-width: 296px;
+  margin-inline: auto;
 }
+/* Shrink the whole bracket so the card stays small and dialog-like (not a screen). */
+.onboarding__stage-grid .stage__figure { width: clamp(50px, 14vw, 70px); }
+.onboarding__stage-grid .stage-grid__center { min-height: 84px; padding-bottom: var(--space-1); }
+.onboarding__stage-grid .ring__disc { width: 40px; height: 40px; border-width: 1.5px; }
+.onboarding__stage-grid .ring__icon { font-size: 1rem; }
+.onboarding__stage-grid .ring__label { font-size: 0.5rem; }
+.onboarding__stage-grid .ring__player { font-size: 0.5rem; }
+.onboarding__stage-grid .ring__initials { font-size: var(--text-sm); }
+.onboarding__stage-grid .stage__ovr { display: none; }
 .onboarding .ring--open .ring__disc {
   animation: onboarding-pulse 0.7s var(--ease-inout) infinite;
 }
@@ -163,7 +181,7 @@
 /* ── Footer: live Roll·Pick·Place tracker → CTA ── */
 .onboarding__footer {
   width: 100%;
-  min-height: 84px;
+  min-height: 68px;
   display: flex;
   flex-direction: column;
   align-items: center;
