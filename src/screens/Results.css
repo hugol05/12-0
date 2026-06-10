@@ -9,6 +9,30 @@
   margin: 0 auto;
 }
 
+/* ── Wide desktop: poster on the left, actions + season archive beside it ──
+   so the dense career data fills the viewport instead of scrolling under a
+   narrow column. The poster keeps its own (shareable) proportions. */
+@media (min-width: 1024px) {
+  .results {
+    display: grid;
+    grid-template-columns: minmax(380px, 460px) minmax(320px, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: var(--space-6) clamp(1.5rem, 4vw, 3rem);
+    max-width: var(--app-col-wide);
+    width: 100%;
+  }
+  .poster { grid-column: 1; grid-row: 1 / span 2; position: sticky; top: var(--space-6); }
+  .results__actions { grid-column: 2; grid-row: 1; }
+  .results__archive { grid-column: 2; grid-row: 2; }
+  /* two columns of seasons so a 20-year career reads without a tall scroll */
+  .results__archive .archive {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px var(--space-2);
+  }
+}
+
 /* ── the shareable poster ─────────────────────────────────── */
 .poster {
   width: 100%;
@@ -226,33 +250,5 @@
 .archive__yr { color: var(--text-secondary); }
 .archive__tag { text-align: right; color: var(--gold-primary); }
 
-/* ── compact share card (off-screen; snapshotted to PNG by Share) ─────────── */
-/* Rendered (not display:none) so html-to-image can capture it, but parked far
-   off-screen so it never shows in the live page. Fixed width = predictable image. */
-.sharecard {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  width: 392px;
-  box-sizing: border-box;
-  padding: var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  background:
-    var(--gradient-spotlight),
-    radial-gradient(120% 80% at 50% 0%, #15151f 0%, var(--bg-void) 72%);
-  color: var(--text-primary);
-  border-radius: var(--radius-lg);
-}
-.sharecard--perfect { box-shadow: inset 0 0 0 2px var(--gold-primary); }
-.sharecard__head { display: flex; justify-content: space-between; align-items: center; }
-.sharecard__hero { display: flex; align-items: center; justify-content: center; gap: var(--space-4); }
-.sharecard__rec { display: flex; flex-direction: column; align-items: center; }
-/* slightly tighter dna on the card */
-.sharecard__dna .dna { font-size: var(--text-xs); }
-.sharecard__foot {
-  text-align: center; font-size: 0.6rem; color: var(--text-tertiary);
-  font-family: var(--font-mono); letter-spacing: var(--tracking-wide);
-  border-top: 1px solid var(--border-subtle); padding-top: var(--space-2);
-}
+/* The shareable image is now drawn on a <canvas> (see src/share/shareImage.ts),
+   so the old off-screen .sharecard DOM + its styles were removed. */

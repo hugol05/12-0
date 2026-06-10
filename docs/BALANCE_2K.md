@@ -177,6 +177,32 @@ regenerating `public/data/*.json`: results are essentially unchanged from the ro
 optimal play avgSeasons 17.3/12-0 10.3%) — the pool-wide durability shuffle didn't move the
 calibrated bands. See `docs/data-strategy.md` "Durability (all players)" for the formula.
 
+### Age-weighted team-carry (2026-06-10, round 4)
+**Problem reported:** landing on a real contender felt irrelevant early — `teamStrengthOf` was a flat
+`base·0.4 + OVR·0.6`, so a still-**developing** player (age 19-22 plays at only 82-92% of peak OVR)
+dragged even a 60-win franchise down to ~.500 and lost in the first round. The team never got to
+"carry" a young star, which is exactly when a stacked roster *should*.
+
+**Fix:** the franchise share of team strength is now **age-weighted** — `franchiseWeightForAge(age) =
+lerp(0.64, 0.40, (age−19)/(26−19))`, clamped to `[0.40, 0.64]`. While you're developing (≤ age ~25)
+the existing roster carries more; by your prime (age 26+) it's back to the calibrated 0.40/0.60
+(player-heavy). Purely youth-driven, so the bad-build floor is untouched (a weak build in its prime
+still sits at 0.40 franchise weight).
+
+| Scenario | avg rings | reach 12 | 12-0 | avg wins (champ seasons) |
+|---|--:|--:|--:|--:|
+| Owner 94-OVR build (clutch 95) | 7.7 → **8.25** | 8.9% → **14.4%** | 5.0% → **7.2%** | ~61 |
+| God build (clutch 99) | 12.0 → **11.96** | ~98.5% → **98.6%** | 86.2% → **87.3%** | ~64 |
+| Perfect (global-max) | — | — | ~88% → **89.1%** | ~64 |
+| Optimal play (OVR ~92) | 6.4 → **6.92** | 13.3% → **19.5%** | 9.7% → **13.4%** | ~60 |
+| Average / bad play | ~0 | 0% | **0%** | — |
+
+So builds that land on good teams early collect modestly more rings (the team carries them through
+development — the reported gap), while the **god-build/perfect ceiling and the bad-play floor are
+unchanged** and champion seasons still average a real-NBA-like ~60-64 wins. Tunables live at the top
+of `career.ts`: `FRANCHISE_WEIGHT_YOUNG` (0.64), `FRANCHISE_WEIGHT_PRIME` (0.40),
+`FRANCHISE_CARRY_UNTIL_AGE` (26).
+
 **Note:** the owner 94-OVR build's avg rings/12-0 dropped from the prior calibration (9.4/28%/11%
 → 7.7/8.9%/5.0%) purely because its career is now ~6 seasons shorter (22.9 → 17.2) — the
 *per-season* ring rate is essentially unchanged (41% → 45%). The god build (whose career length is

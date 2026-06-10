@@ -93,8 +93,24 @@ function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * Math.max(0, Math.min(1, t));
 }
 
-function teamStrengthOf(franchiseBase: number, ovr: number): number {
-  return franchiseBase * 0.4 + ovr * 0.6;
+// In your PRIME you ARE the team (franchise weighted 0.40, you 0.60 — an MVP drags a weak roster up).
+// But while you're still DEVELOPING the existing roster carries more of the load: a raw rookie who
+// lands on a stacked contender should get pulled along, not drag it down to .500. So the franchise
+// weight fades from ~0.64 at the start age down to 0.40 by age 26, then stays at prime weight. This
+// is purely a youth-carry effect (age-driven), not a quality crutch — a bad build in its prime still
+// decides its own fate at 0.40 franchise weight.
+const FRANCHISE_WEIGHT_YOUNG = 0.64; // franchise share at START_AGE (developing)
+const FRANCHISE_WEIGHT_PRIME = 0.40; // franchise share from ~age 26 on (current behaviour)
+const FRANCHISE_CARRY_UNTIL_AGE = 26; // age by which carry has fully faded to prime weight
+
+function franchiseWeightForAge(age: number): number {
+  return lerp(FRANCHISE_WEIGHT_YOUNG, FRANCHISE_WEIGHT_PRIME,
+    (age - START_AGE) / (FRANCHISE_CARRY_UNTIL_AGE - START_AGE));
+}
+
+function teamStrengthOf(franchiseBase: number, ovr: number, age: number): number {
+  const fw = franchiseWeightForAge(age);
+  return franchiseBase * fw + ovr * (1 - fw);
 }
 
 // Regular-season wins as a smooth, saturating function of team strength — no hard cap, and
@@ -204,7 +220,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     ovrPenalty = Math.max(0, ovrPenalty - 2);
 
     const franchiseBase = leagueById.get(currentTeam)?.rating ?? 75;
-    const strength = teamStrengthOf(franchiseBase, ovr);
+    const strength = teamStrengthOf(franchiseBase, ovr, age);
 
     // injury check (weighted by durability)
     const injuryRisk = durability >= 95 ? 0.05 : durability >= 90 ? 0.08 : durability >= 80 ? 0.12 : durability >= 70 ? 0.17 : 0.26;

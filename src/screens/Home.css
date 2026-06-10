@@ -10,7 +10,9 @@
   justify-content: safe center;
   padding: clamp(1.5rem, 5vh, 3rem) var(--space-6);
   text-align: center;
-  overflow: hidden;
+  /* allow vertical scroll (footer + rails can exceed short laptop heights) while
+     keeping the horizontal void clean */
+  overflow-x: hidden;
   background:
     var(--gradient-spotlight),
     radial-gradient(ellipse at 50% 120%, rgba(196, 136, 58, 0.08), transparent 55%),
@@ -55,16 +57,153 @@
   }
 }
 
-/* ── Content stack ────────────────────────────────────────────── */
+/* ── Layout wrapper ───────────────────────────────────────────────
+   Mobile: a single centered column (the rails are hidden). Desktop: a
+   3-column grid with the hero centered between two info rails. */
 .home__inner {
   position: relative;
   z-index: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* the centered hero stack (mobile = the whole screen) */
+.home__center {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: clamp(0.75rem, 2.4vh, 1.5rem);
   width: 100%;
   max-width: 380px;
+}
+
+/* ── Desktop side rails (hidden on mobile / tablet) ─────────────── */
+.home__rail {
+  display: none;
+}
+.home__rail-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--gold-primary);
+  text-align: left;
+}
+.home__step {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+.home__step-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--gold-primary);
+}
+.home__step-text { display: flex; flex-direction: column; gap: 2px; }
+.home__step-title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+}
+.home__step-body { font-size: var(--text-sm); line-height: 1.4; color: var(--text-secondary); }
+
+.home__record {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  text-align: left;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+.home__record--goal {
+  border-color: var(--gold-primary);
+  background: var(--gold-soft);
+}
+.home__record-value {
+  flex: 0 0 auto;
+  min-width: 3.6rem;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--gold-primary);
+  line-height: 1;
+}
+.home__record-label { font-size: var(--text-sm); line-height: 1.35; color: var(--text-secondary); }
+
+/* ── Footer (NBA disclaimer + feedback) ───────────────────────── */
+.home__footer {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 760px;
+  margin-top: clamp(1.5rem, 4vh, 2.5rem);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.home__disclaimer {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+.home__disclaimer strong { color: var(--text-secondary); font-weight: var(--weight-semibold); }
+.home__feedback {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+.home__mail {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--gold-primary);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+  vertical-align: middle;
+}
+.home__mail:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Wide desktop: 3-column hero with flanking info rails ───────── */
+@media (min-width: 1024px) {
+  .home__inner {
+    display: grid;
+    grid-template-columns: 1fr minmax(360px, 420px) 1fr;
+    align-items: center;
+    justify-items: center;
+    gap: clamp(1.5rem, 4vw, 4rem);
+    max-width: var(--app-col-wide);
+    margin-inline: auto;
+  }
+  .home__rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    width: 100%;
+    max-width: 320px;
+  }
+  .home__rail--left { justify-self: end; }
+  .home__rail--right { justify-self: start; }
+  .home__center { max-width: 420px; }
 }
 
 .home__eyebrow {

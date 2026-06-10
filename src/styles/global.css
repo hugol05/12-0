@@ -37,6 +37,10 @@ body {
    untouched; they just render inside this column. */
 :root {
   --app-col: 500px;
+  /* On real desktops the game breaks out of the phone column into a full-width
+     stage; screens opt in via their own ≥1024px layouts. */
+  --app-col-wide: min(1280px, 94vw);
+  --desktop-bp: 1024px;
 }
 
 .page-shell {
@@ -68,6 +72,24 @@ body {
      far viewport corner */
   .global-home {
     right: max(calc(var(--safe-right) + 12px), calc(50vw - var(--app-col) / 2 + 12px));
+  }
+}
+
+/* ── Wide desktop: break out of the phone column ───────────────────
+   At ≥1024px the device-card column gives way to a full-width stage so each
+   screen can spread its content across the viewport with side panels. The
+   per-screen layouts (Home, Results, Build, Simulate) define their own desktop
+   grids; here we just widen the shell, drop the "device" halo, and re-pin the
+   floating Home control to the viewport corner. */
+@media (min-width: 1024px) {
+  .page-shell {
+    max-width: var(--app-col-wide);
+    box-shadow: none;
+  }
+
+  .global-home {
+    right: calc(var(--safe-right) + 24px);
+    top: calc(var(--safe-top) + 20px);
   }
 }
 

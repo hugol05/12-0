@@ -193,6 +193,24 @@ export default function Simulate() {
           <button className="cta" onClick={() => navigate('/results')}>See your legacy →</button>
         )}
       </div>
+
+      {/* desktop-only: a live season ledger that fills the right rail as the
+          career reveals (hidden on mobile, where the single card is the focus) */}
+      {shown.length > 0 && (
+        <aside className="sim__log" aria-label="Season log">
+          <p className="sim__log-title">Season by season</p>
+          <ul className="sim__log-list">
+            {shown.map((s) => (
+              <li key={s.seasonIndex} className={`sim__log-row ${s.wonChampionship ? 'sim__log-row--ring' : ''}`}>
+                <span className="sim__log-yr">’{String(SEASON_START_YEAR + s.seasonIndex).slice(2)}</span>
+                <TeamBadge franchiseId={s.team} abbreviation={abbr(s.team)} name={teamName(s.team)} size="sm" />
+                <span className="sim__log-rec">{s.wins}-{s.losses}</span>
+                <span className="sim__log-mark">{logMark(s)}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )}
     </main>
   );
 }
@@ -204,6 +222,15 @@ function Stat({ v, l }: { v: number; l: string }) {
       <span className="season__stat-l">{l}</span>
     </div>
   );
+}
+
+function logMark(s: SeasonResult): string {
+  if (s.injury === 'season-ending') return '✚';
+  if (s.wonChampionship) return '◆';
+  if (s.madeFinals) return 'F';
+  if (s.roundReached === 'confFinals') return 'CF';
+  if (s.madePlayoffs) return 'P';
+  return '—';
 }
 
 function tagClass(s: SeasonResult): string {

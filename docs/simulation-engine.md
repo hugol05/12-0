@@ -104,7 +104,7 @@ Injury severity is weighted by Durability. Major injuries can cause a temporary 
 Each season runs through this pipeline:
 
 1. **Calculate Player OVR** (age-adjusted, injury check)
-2. **Calculate Team Strength** = Player OVR + franchise base rating (heavily weighted towards player)
+2. **Calculate Team Strength** = age-weighted blend of franchise base rating and player OVR (player-heavy in your prime, franchise-heavy while you're still developing — see Team Strength below)
 3. **Regular Season** = Win total on a smooth, saturating curve of team strength (no hard cap, and no
    floor of 70 for champions):
    `wins = 50 + 14·tanh((strength − 82)/14) + U(−7, 7)`, plus a "career year" bonus whose chance
@@ -157,13 +157,25 @@ seriesWinProb = clamp(0.5 + (ourStrength - oppStrength) * 0.045 + clutchBonus, 0
   inputs — **`marketTier`** (`large`/`mid`/`small`) and **`youthIndex`** (0–1, higher = younger).
   All three are curated in `data-source/curated/franchises.json` and emitted to
   `public/data/franchises.json` by the pipeline.
-- **Formula:** Our player is a heavy decider, like LeBron in the 2010s East.
+- **Formula (age-weighted blend):** In your **prime** you ARE the team (franchise 0.40 / player 0.60,
+  like LeBron in the 2010s East). But while you're still **developing**, the existing roster carries
+  more of the load — a raw rookie who lands on a stacked contender should be pulled along, not drag it
+  down to .500. So the **franchise weight fades from 0.64 at the start age (19) down to the 0.40 prime
+  weight by age 26**, then stays flat:
   ```javascript
-  teamStrength = (franchiseBase * 0.40) + (playerOVR * 0.60)
+  // franchiseWeightForAge: lerp(0.64, 0.40, (age - 19) / (26 - 19)), clamped
+  teamStrength = (franchiseBase * fw) + (playerOVR * (1 - fw))   // fw ∈ [0.40, 0.64]
   ```
-- **Example 1:** A 95 OVR player on an 80-rated team: `(80 * 0.4) + (95 * 0.6) = 32 + 57 = 89`.
-- **Example 2:** A 99 OVR player on a 70-rated team: `(70 * 0.4) + (99 * 0.6) = 28 + 59.4 = 87.4`.
-- This ensures an MVP-level player can single-handedly drag a mediocre franchise to the Finals.
+- **Example 1 (prime):** A 95 OVR player on an 80-rated team at age 28: `(80 * 0.4) + (95 * 0.6) = 89`.
+- **Example 2 (prime):** A 99 OVR player on a 70-rated team: `(70 * 0.4) + (99 * 0.6) = 87.4`.
+- **Example 3 (rookie carry):** A still-developing player (peak 89, age 19 → effective OVR ≈ 73) on a
+  95-rated contender: `(95 * 0.64) + (73 * 0.36) ≈ 87`, enough to reach the Conf Finals / Finals — the
+  team carries you early. The same player on a mid 86-rated team lands around strength 81 (comfortable
+  playoffs), which is the intended ceiling for a non-elite franchise.
+- This keeps two fantasies intact: an MVP-level player single-handedly drags a mediocre franchise to
+  the Finals **in their prime**, and a great roster carries a young you **before you've arrived**. The
+  carry is purely age-driven (youth, not a quality crutch) — a bad build in its prime still decides its
+  own fate at 0.40 franchise weight, so the failure floor is unchanged.
 
 #### Franchise Strength & Trajectory (WS7)
 
@@ -311,10 +323,10 @@ Track at minimum:
 
 **Two-axis target (calibrated 2026-06-10 against the real pool — see `BALANCE_2K.md` §6):**
 
-- **Rings ← OVR.** Optimal play (~92 OVR) averages **~7 rings** and reaches 12 about **20-24%** of the
-  time. A realistic 94-OVR build averages **~9 rings**.
-- **12-0 ← clutch.** A 94-OVR build with 95 clutch goes 12-0 only **~1-in-7** (it usually drops 1-2
-  Finals). A **god build** — elite at everything *and* ~99 clutch — goes 12-0 **~90%** of the time.
+- **Rings ← OVR.** Optimal play (~92 OVR) averages **~7 rings** and reaches 12 about **~20%** of the
+  time. A realistic 94-OVR build averages **~8 rings**.
+- **12-0 ← clutch.** A 94-OVR build with 95 clutch goes 12-0 only **~7%** of the time (it usually drops
+  1-2 Finals). A **god build** — elite at everything *and* ~99 clutch — goes 12-0 **~87%** of the time.
 - Average / poor play → **0-2 rings**; it stays a real failure floor.
 - **12 is the hard cap.** Max 12 championships.
 - 12-0 requires: elite attributes **and** 97+ Clutch **and** enough OVR to reach the Finals a dozen

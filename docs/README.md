@@ -87,8 +87,8 @@ A **two-axis** model (see [`BALANCE_2K.md` §6](BALANCE_2K.md) for the full cali
 rubber-bands to the player's strength. Measured on the real shipped pool
 (`BALANCE=1 npx vitest run src/simulation/_balanceProbe.test.ts`):
 
-- **A strong-but-not-elite build (~94 OVR, 95 Clutch)**: ~7-8 rings/career, **~5% 12-0**.
-- **Optimal play (best-in-bucket pick + top-5 franchise, ~92 OVR/~93 Clutch)**: ~6 rings/career, **~10% 12-0**.
+- **A strong-but-not-elite build (~94 OVR, 95 Clutch)**: ~8 rings/career, **~7% 12-0**.
+- **Optimal play (best-in-bucket pick + top-5 franchise, ~92 OVR/~93 Clutch)**: ~7 rings/career, **~13% 12-0**.
 - **God build (98 OVR / 99 Clutch)**: ~12 rings/career, **~86% 12-0**.
 - **Perfect build (global-max every category)**: **~88-89% 12-0**.
 - Champion seasons average **~56-65 wins** (real-NBA-like); 70-win seasons are rare (~3% for the
