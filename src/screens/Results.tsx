@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Home } from 'lucide-react';
+import { Home, Twitter } from 'lucide-react';
 import type { RatingCategory } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
 import { encodeBuild, shareUrl } from '@/share/shareLink';
-import { shareNodeAsImage } from '@/share/shareImage';
+import { shareCareerImage, type ShareCardData } from '@/share/shareImage';
 import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { TeamBadge } from '@/components/TeamBadge';
 import { buildArchetype, formatHeight, nickname, parseHeightInches } from '@/lib/archetype';
@@ -25,10 +25,8 @@ export default function Results() {
   const seed = useGameStore((s) => s.seed);
   const franchise = useGameStore((s) => s.franchise);
   const assignments = useGameStore((s) => s.assignments);
-  // The shared image is a dedicated compact card (rendered off-screen), not the
-  // full on-screen poster — so the export stays tight: record, OVR, archetype,
-  // awards, averages and the Built-With list only.
-  const shareCardRef = useRef<HTMLDivElement>(null);
+  // The shared image is drawn on a canvas (see share/shareImage) — a compact 4:5
+  // card with the record, OVR, archetype, awards, averages and Built-With list.
   const [shareState, setShareState] = useState<'idle' | 'working' | 'shared' | 'saved' | 'error'>('idle');
 
   useEffect(() => {
@@ -77,16 +75,40 @@ export default function Results() {
     return code ? shareUrl(code) : undefined;
   };
 
-  // Snapshot the poster (record + OVR + awards + Built-With) to a PNG and open the
-  // system share sheet so it can be posted to Twitter/X, Messages, etc. — falling
-  // back to a download when file-sharing isn't supported.
+  // Build the compact share-card data and render it to a PNG (canvas), then open
+  // the system share sheet so it can be posted to Twitter/X, Messages, etc. —
+  // falling back to a download when file-sharing isn't supported.
+  const buildShareData = (): ShareCardData => {
+    const awards: ShareCardData['awards'] = [];
+    if (career.championships > 0) awards.push({ count: career.championships, label: 'Rings' });
+    if (career.mvps > 0) awards.push({ count: career.mvps, label: 'MVP' });
+    if (career.finalsMvps > 0) awards.push({ count: career.finalsMvps, label: 'FMVP' });
+    if (career.dpoys > 0) awards.push({ count: career.dpoys, label: 'DPOY' });
+    if (career.allStars > 0) awards.push({ count: career.allStars, label: 'All-Star' });
+    const builtWith: ShareCardData['builtWith'] = assignments
+      .filter((a) => a.category !== 'durability')
+      .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category))
+      .map((a) => ({
+        cat: CAT_LABEL[a.category],
+        player: playerName(a.playerId),
+        rating: a.category === 'height'
+          ? formatHeight(data?.playersById.get(a.playerId)?.height)
+          : String(a.rating),
+      }));
+    return {
+      wins: finals.wins, losses: finals.losses, perfect,
+      peakOvr: career.peakOvr, nick, archetype, height: formatHeight(heightPlayer?.height),
+      difficulty, awards, averages: avg, builtWith, startTeam,
+    };
+  };
+
   const share = async () => {
-    if (!shareCardRef.current || shareState === 'working') return;
+    if (shareState === 'working') return;
     setShareState('working');
     const url = buildShareUrl();
     const line = `I went ${finals.wins}–${finals.losses} in the Finals on 12-0.`;
     const slug = `12-0-${legacyTier.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-    const res = await shareNodeAsImage(shareCardRef.current, {
+    const res = await shareCareerImage(buildShareData(), {
       fileName: slug,
       title: '12-0',
       text: url ? `${line} Replay my exact run: ${url}` : line,
@@ -104,6 +126,18 @@ export default function Results() {
     : shareState === 'saved' ? 'Image saved'
     : shareState === 'error' ? 'Try again'
     : 'Share image';
+
+  // One-tap post to X with a pre-filled brag + the replay link (which carries the
+  // site's OG card). Complements the image share — best path on desktop, where the
+  // Web Share sheet usually isn't available.
+  const tweet = () => {
+    const url = buildShareUrl() ?? 'https://12-0.me';
+    const text = perfect
+      ? `I built “${nick}” and went a PERFECT 12–0 in the Finals on 12-0 🏆 — past Bill Russell’s 11 rings. Build your god player:`
+      : `I built “${nick}” and went ${finals.wins}–${finals.losses} in the Finals on 12-0, chasing Bill Russell’s 11 rings. Beat my run:`;
+    const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(intent, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <main className="results">
@@ -228,6 +262,10 @@ export default function Results() {
         <button className="results__share" onClick={share} disabled={shareState === 'working'}>
           {shareLabel}
         </button>
+        <button className="results__tweet" onClick={tweet}>
+          <Twitter size={17} aria-hidden="true" strokeWidth={2.25} />
+          Tweet result
+        </button>
         <div className="results__actions-row">
           <button className="results__again" onClick={playAgain}>Build another</button>
           <button className="results__home" onClick={goHome} aria-label="Back to home">
@@ -252,62 +290,6 @@ export default function Results() {
         </ul>
       </section>
 
-      {/* ── compact share card (rendered off-screen, snapshotted by Share) ── */}
-      <div ref={shareCardRef} className={`sharecard ${perfect ? 'sharecard--perfect' : ''}`} aria-hidden="true">
-        <div className="sharecard__head">
-          <span className="poster__brand">12&ndash;0</span>
-          <span className="poster__diff">{difficulty.toUpperCase()}</span>
-        </div>
-
-        <div className="sharecard__hero">
-          <PlayerSilhouette mode="poster" size="sm" filled={filled} />
-          <div className="sharecard__rec">
-            <span className="poster__record">{finals.wins}&ndash;{finals.losses}</span>
-            <span className="poster__record-label">Finals Record</span>
-            {perfect && <span className="poster__broken">Record Broken</span>}
-            <div className="poster__ovr">
-              <span className="poster__ovr-num">{career.peakOvr}</span>
-              <span className="poster__ovr-label">Peak OVR</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="poster__name">
-          <span className="poster__nick">{nick}</span>
-          <span className="poster__archetype">{archetype} · {formatHeight(heightPlayer?.height)}</span>
-        </div>
-
-        <div className="poster__awards">
-          {career.championships > 0 && <Award count={career.championships} label="Rings" />}
-          {career.mvps > 0 && <Award count={career.mvps} label="MVP" />}
-          {career.finalsMvps > 0 && <Award count={career.finalsMvps} label="Finals MVP" />}
-          {career.dpoys > 0 && <Award count={career.dpoys} label="DPOY" />}
-          {career.allStars > 0 && <Award count={career.allStars} label="All-Star" />}
-        </div>
-
-        <div className="poster__avg">
-          <Avg v={avg.ppg} l="PPG" /><Avg v={avg.rpg} l="RPG" /><Avg v={avg.apg} l="APG" />
-          <Avg v={avg.spg} l="SPG" /><Avg v={avg.bpg} l="BPG" />
-        </div>
-
-        <ul className="poster__dna sharecard__dna">
-          {assignments
-            .filter((a) => a.category !== 'durability')
-            .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category))
-            .map((a) => (
-              <li key={a.category} className="dna">
-                <span className="dna__cat">{CAT_LABEL[a.category]}</span>
-                <span className="dna__player">{playerName(a.playerId)}</span>
-                <span className="dna__rating">
-                  {a.category === 'height' ? formatHeight(data?.playersById.get(a.playerId)?.height) : a.rating}
-                </span>
-                <TeamBadge franchiseId={a.source.franchise} abbreviation={abbr(a.source.franchise)} name={teamName(a.source.franchise)} size="sm" className="dna__badge" />
-              </li>
-            ))}
-        </ul>
-
-        <div className="sharecard__foot">Built on 12-0 · Started on the {startTeam}</div>
-      </div>
     </main>
   );
 }

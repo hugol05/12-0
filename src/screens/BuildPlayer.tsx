@@ -1,22 +1,16 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import type { Franchise, OvrCategory, Player, Position, RatingCategory, RollBucket } from '@/types';
+import type { Franchise, OvrCategory, Player, RatingCategory, RollBucket } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
 import { OVR_WEIGHTS, computeOvr } from '@/simulation/categories';
 import { BuildStage, type StageSlot } from '@/components/BuildStage';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { TeamBadge } from '@/components/TeamBadge';
 import { cardReveal, staggerContainer } from '@/lib/motion';
 import { formatHeight } from '@/lib/archetype';
 import './BuildPlayer.css';
-
-const POS_FILTERS: { label: string; match: (p: Position) => boolean }[] = [
-  { label: 'All', match: () => true },
-  { label: 'G', match: (p) => p === 'PG' || p === 'SG' },
-  { label: 'F', match: (p) => p === 'SF' || p === 'PF' },
-  { label: 'C', match: (p) => p === 'C' },
-];
 
 // Display order of the 9 rings, forming a bracket (⊓):
 //   [0..2] top row, [3..5] left column (top→bottom), [6..8] right column (top→bottom).
@@ -68,8 +62,6 @@ export default function BuildPlayer() {
   const [bucket, setBucket] = useState<RollBucket | null>(null);
   const [selected, setSelected] = useState<Player | null>(null);
   const [startRoll, setStartRoll] = useState<Franchise | null>(null);
-  const [filter, setFilter] = useState(0);
-  const [search, setSearch] = useState('');
   const [rolling, setRolling] = useState(false);
   // which reel(s) the current flourish animates: a full roll spins both, while a
   // single re-roll only spins the reel it changed (the other stays on its value).
@@ -196,19 +188,15 @@ export default function BuildPlayer() {
 
   const roster = useMemo(() => {
     if (!data || !bucket) return [] as Player[];
-    const f = POS_FILTERS[filter].match;
-    const q = search.trim().toLowerCase();
     const list = bucket.playerIds
       .map((id) => data.playersById.get(id))
-      .filter((p): p is Player => !!p)
-      .filter((p) => p.positions.some(f))
-      .filter((p) => !q || p.name.toLowerCase().includes(q));
+      .filter((p): p is Player => !!p);
     // Hard hides all hints — including ordering — so shuffle stably; otherwise rank by OVR.
     if (difficulty === 'hard') {
       return list.sort((a, b) => hashStr(a.id) - hashStr(b.id));
     }
     return list.sort((a, b) => computeOvr(b.ratings) - computeOvr(a.ratings));
-  }, [data, bucket, filter, search, difficulty]);
+  }, [data, bucket, difficulty]);
 
   // running OVR = weighted average over the OVR categories assigned so far
   const ovrSoFar = useMemo(() => {
@@ -270,9 +258,9 @@ export default function BuildPlayer() {
     }
   }, [rolling, awaitingRoll, bucket, roster]);
 
-  if (loading) return <main className="build build--center"><p className="muted">Loading rosters…</p></main>;
+  if (loading) return <LoadingScreen message="Loading rosters…" />;
   if (error) return <main className="build build--center"><p className="muted">Failed to load data: {error}</p></main>;
-  if (!data) return <main className="build build--center"><p className="muted">Rolling…</p></main>;
+  if (!data) return <LoadingScreen message="Loading rosters…" />;
   // Once the build is locked we navigate to /preview. Render a minimal, static page
   // during that exit so the route transition (AnimatePresence mode="wait") completes
   // cleanly instead of holding the heavy BuildStage on screen.
@@ -347,20 +335,6 @@ export default function BuildPlayer() {
           {/* ── player list (only once a fresh roll is ready to pick) ── */}
           {canPick && (
             <section className="pick">
-              <div className="pick__controls">
-                <div className="pick__filters">
-                  {POS_FILTERS.map((f, i) => (
-                    <button key={f.label} className={`pill ${i === filter ? 'pill--active' : ''}`} onClick={() => setFilter(i)}>{f.label}</button>
-                  ))}
-                </div>
-                <input
-                  className="pick__search"
-                  placeholder="Search player…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-
               <motion.ul className="pick__list" variants={staggerContainer(0.03)} initial="hidden" animate="show">
                 {roster.map((p) => {
                   const isActive = selected?.id === p.id;

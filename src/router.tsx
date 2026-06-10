@@ -1,7 +1,9 @@
 import { createBrowserRouter, useLocation, useNavigate, useOutlet } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { BackButton } from '@/components/BackButton';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { LoadingScreen } from '@/components/LoadingScreen';
 import { pageVariants, pageTransition } from '@/lib/motion';
 
 // Route-based code splitting keeps the landing bundle tiny.
@@ -13,7 +15,7 @@ const Results = lazy(() => import('./screens/Results'));
 const Replay = lazy(() => import('./screens/Replay'));
 
 function withSuspense(node: React.ReactNode) {
-  return <Suspense fallback={null}>{node}</Suspense>;
+  return <Suspense fallback={<LoadingScreen />}>{node}</Suspense>;
 }
 
 /**
@@ -52,13 +54,27 @@ function RootLayout() {
   const navigate = useNavigate();
   const reduced = useReducedMotion() ?? false;
   const showHome = !NO_GLOBAL_HOME.has(location.pathname);
+  // Home lives on the in-progress screens (build / preview / simulate) where a
+  // stray tap would throw away the current build — so confirm before leaving.
+  const [confirmHome, setConfirmHome] = useState(false);
 
   return (
     <>
       {showHome && (
         <div className="global-home">
-          <BackButton variant="home" onClick={() => navigate('/')} />
+          <BackButton variant="home" onClick={() => setConfirmHome(true)} />
         </div>
+      )}
+
+      {confirmHome && (
+        <ConfirmDialog
+          title="Leave this run?"
+          body="Your current player and all progress will be lost. This can’t be undone."
+          confirmLabel="Leave"
+          cancelLabel="Keep building"
+          onConfirm={() => { setConfirmHome(false); navigate('/'); }}
+          onCancel={() => setConfirmHome(false)}
+        />
       )}
 
       <AnimatePresence mode="wait" initial={false}>

@@ -33,16 +33,17 @@
 | 10 rolls with 2 re-rolls | Sound effects |
 | Career simulation engine | Complex trade engine |
 | Career summary / screenshot-safe share poster | Custom player appearance |
-| PWA (installable, offline) | Share as image (canvas) |
+| PWA (installable, offline) | Complex trade engine |
 | Mobile-first responsive | |
 | Vercel deployment | |
 | Static NBA data (JSON) | |
 | Share link | |
 | Easy / Normal / Hard player information modes | |
+| **Share as image (canvas card)** — shipped 2026-06-10 | |
+| **Open Graph / Twitter link cards** — shipped 2026-06-10 | |
 
 ### v1.5 — Viral Features
 - Daily Challenge
-- Share as image (canvas-rendered card)
 - Leaderboard (localStorage)
 - Alternate share views: Record Book, Career Totals, Dynasty Map, Built With
 - Rivalry callouts and rare career event highlights

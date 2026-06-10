@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { useGameStore } from '@/store/gameStore';
+import { useGameStore, useStoreHydrated } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
 import { CATEGORIES, computeOvr, OVR_WEIGHTS } from '@/simulation/categories';
 import { assignmentsToRatings } from '@/simulation/career';
@@ -27,12 +27,15 @@ export default function Preview() {
   const franchise = useGameStore((s) => s.franchise);
   const difficulty = useGameStore((s) => s.difficulty);
 
+  const hydrated = useStoreHydrated();
   const ready = assignments.length === 9 && !!franchise;
 
-  // bounce back to build if we somehow landed here without a complete build
+  // bounce back to build if we somehow landed here without a complete build —
+  // but only once the persisted store has rehydrated, so a reload/deep-link of
+  // /preview doesn't bounce on the still-empty initial state.
   useEffect(() => {
-    if (!ready) navigate('/build');
-  }, [ready, navigate]);
+    if (hydrated && !ready) navigate('/build');
+  }, [hydrated, ready, navigate]);
 
   const ratings = useMemo(() => assignmentsToRatings(assignments), [assignments]);
   const ovr = computeOvr(ratings);

@@ -152,6 +152,13 @@ Use record labels that feel fun and legible:
 ## Share Functionality
 
 Three share actions:
-1. **Share 📸** — Generates a shareable image (v1.5: canvas-rendered card; v1.0 screenshot-safe poster)
+1. **Share image 📸** — Renders a compact **4:5 (1080×1350) career card on a `<canvas>`**
+   (`src/share/shareImage.ts` → `renderCareerCard`/`shareCareerImage`): Finals record, peak
+   OVR, nickname/archetype, award chips, career averages and the Built-With DNA. It opens the
+   Web Share sheet with the PNG attached (X / Messages / Instagram), falling back to a download
+   when file-sharing isn't supported. **Note:** this replaced the old `html-to-image` DOM
+   snapshot, which produced flaky half-blank / all-black captures on first tap (web-font + mask
+   race on an off-screen node). The canvas render is deterministic — every share is identical
+   and nothing can fail to paint.
 2. **Link 🔗** — Copies a shareable URL with the build encoded
 3. **Play Again 🔄** — Restarts the game

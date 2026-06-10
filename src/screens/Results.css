@@ -192,6 +192,29 @@
 .results__share:active { transform: scale(0.985); }
 .results__share:disabled { opacity: 0.6; cursor: progress; }
 
+/* one-tap "Tweet result" — full-width, sits under Share image. Quieter than the
+   gold primary but clearly a share action (icon + label). */
+.results__tweet {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+.results__tweet:hover { border-color: var(--gold-primary); background: var(--gold-soft); }
+.results__tweet:active { transform: scale(0.985); }
+
 /* secondary — start a fresh build (quiet ghost, smaller & lighter than Share) */
 .results__again {
   flex: 1;

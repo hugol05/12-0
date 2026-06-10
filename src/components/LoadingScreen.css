@@ -1,0 +1,60 @@
+.loading {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  background: var(--gradient-court, radial-gradient(120% 80% at 50% 0%, #15151f, #000));
+}
+
+.loading__mark {
+  position: relative;
+  width: 132px;
+  height: 132px;
+  display: grid;
+  place-items: center;
+}
+
+/* two concentric gold rings spinning at different speeds — a "spinning the roll"
+   feel that ties to the game's roll mechanic */
+.loading__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--gold-primary, #d4a853);
+  border-right-color: var(--gold-soft, rgba(212, 168, 83, 0.3));
+  animation: loadingSpin 1.1s linear infinite;
+}
+.loading__ring--2 {
+  inset: 16px;
+  border-top-color: var(--gold-soft, rgba(212, 168, 83, 0.4));
+  border-right-color: var(--gold-primary, #d4a853);
+  animation-duration: 1.7s;
+  animation-direction: reverse;
+}
+@keyframes loadingSpin { to { transform: rotate(360deg); } }
+
+.loading__logo {
+  font-family: var(--font-display, system-ui);
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--gold-primary, #d4a853);
+  animation: loadingPulse 1.6s ease-in-out infinite;
+}
+@keyframes loadingPulse { 0%, 100% { opacity: 0.65; } 50% { opacity: 1; } }
+
+.loading__msg {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #8a8a9a);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading__ring { animation: none; border-right-color: var(--gold-soft, rgba(212, 168, 83, 0.3)); }
+  .loading__logo { animation: none; opacity: 1; }
+}

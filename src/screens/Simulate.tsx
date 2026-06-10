@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { PlayerBuild } from '@/types';
-import { useGameStore } from '@/store/gameStore';
+import { useGameStore, useStoreHydrated } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
 import { loadManifest } from '@/data/loadGameData';
 import { assignmentsToRatings } from '@/simulation/career';
@@ -38,6 +38,7 @@ export default function Simulate() {
   const result = useGameStore((s) => s.result);
   const setResult = useGameStore((s) => s.setResult);
 
+  const hydrated = useStoreHydrated();
   const ready = assignments.length === 9 && !!franchise;
   const [revealed, setRevealed] = useState(0);
   const [skipped, setSkipped] = useState(false);
@@ -51,9 +52,11 @@ export default function Simulate() {
     return s;
   }, [storedSeed, setSeed]);
 
+  // Only bounce to /build once the persisted store has rehydrated, so a reload or
+  // deep-link of /simulate doesn't redirect on the still-empty initial state.
   useEffect(() => {
-    if (!ready) { navigate('/build'); return; }
-  }, [ready, navigate]);
+    if (hydrated && !ready) { navigate('/build'); return; }
+  }, [hydrated, ready, navigate]);
 
   // kick off the simulation once data + build are ready
   useEffect(() => {

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type {
@@ -119,6 +120,26 @@ export const useGameStore = create<GameState>()(
     },
   ),
 );
+
+/**
+ * True once zustand-persist has finished rehydrating from localStorage.
+ *
+ * With the default (synchronous) localStorage storage this is already `true` on
+ * first render, so it's a no-op in the normal flow — but gating the in-loop
+ * screens' "no build → bounce to /build" redirects on it makes a hard reload or
+ * deep-link of /preview, /simulate (and any future async storage) robust: we
+ * never redirect on an empty store *before* the persisted build has loaded.
+ */
+export function useStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(() => useGameStore.persist.hasHydrated());
+  useEffect(() => {
+    // catch the case where hydration finishes between the initial render and this effect
+    if (useGameStore.persist.hasHydrated()) setHydrated(true);
+    const unsub = useGameStore.persist.onFinishHydration(() => setHydrated(true));
+    return unsub;
+  }, []);
+  return hydrated;
+}
 
 /** Categories still unfilled, in canonical order. */
 export function unfilledCategories(filled: AttributeAssignment[]): RatingCategory[] {

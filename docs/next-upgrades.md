@@ -1,5 +1,12 @@
 # 12-0 — Next Upgrades
 
+> ⚠️ **Partially superseded (2026-06-10).** [POST_LAUNCH.md](POST_LAUNCH.md) is now the *current*
+> prioritized roadmap. Several Tier-1 items here already shipped — **share-as-image (#1), Open Graph
+> cards (#1 / quick-wins), motion & championship feedback (#2), onboarding (#3), and analytics (#4)**.
+> This file remains the deeper engineering backlog (data fidelity, accessibility, performance,
+> offline, error boundaries) — still valid, just lower priority than the retention/sharing items in
+> POST_LAUNCH.
+>
 > **Engineering upgrade backlog** for after the v1.0 core (build → simulate → results → share) is complete and verified.
 > This is the *technical* companion to [roadmap.md](roadmap.md) (which owns the *product/social* phasing). When an item ships, move it to [BUILD_STATUS.md](BUILD_STATUS.md).
 

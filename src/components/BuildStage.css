@@ -10,12 +10,14 @@
     'l1  fig r1'
     'l2  fig r2'
     'l3  fig r3';
-  gap: var(--space-2) var(--space-2);
+  gap: var(--space-1) var(--space-2);
   align-items: center;
   justify-items: center;
   width: 100%;
 }
 
+/* Shorter center pulls the side rings closer together (so playmaking / clutch /
+   athleticism / durability sit higher) and trims the screen's vertical height. */
 .stage-grid__center {
   grid-area: fig;
   position: relative;
@@ -23,12 +25,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 210px;
-  padding-bottom: var(--space-5);
+  min-height: 158px;
+  padding-bottom: var(--space-4);
 }
 
 .stage__figure {
-  width: clamp(104px, 30vw, 168px);
+  width: clamp(84px, 24vw, 132px);
 }
 
 .stage__ovr {

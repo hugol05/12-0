@@ -1,0 +1,73 @@
+.confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: rgba(0, 0, 0, 0.66);
+  backdrop-filter: blur(4px);
+  animation: confirmFade var(--dur-fast) var(--ease-out);
+}
+@keyframes confirmFade { from { opacity: 0; } to { opacity: 1; } }
+
+.confirm__card {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--gradient-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card), 0 24px 60px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  animation: confirmRise var(--dur-base) var(--ease-out);
+}
+@keyframes confirmRise { from { transform: translateY(10px) scale(0.98); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.confirm__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+.confirm__body { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; }
+
+.confirm__actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+.confirm__cancel,
+.confirm__confirm {
+  flex: 1;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-base);
+  letter-spacing: var(--tracking-wide);
+  cursor: pointer;
+  transition: transform var(--dur-instant) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+/* Cancel is the safe, emphasized default (keep building). */
+.confirm__cancel {
+  background: var(--gradient-gold);
+  color: var(--bg-void);
+  border: none;
+  box-shadow: var(--shadow-gold);
+}
+.confirm__cancel:hover { transform: translateY(-1px); }
+/* Confirm (leave) is the muted, secondary action. */
+.confirm__confirm {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
+.confirm__confirm:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm, .confirm__card { animation: none; }
+}
