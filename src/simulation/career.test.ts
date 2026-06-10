@@ -149,7 +149,9 @@ describe('simulateCareer difficulty balance (synthetic uniform builds)', () => {
 
   it('uniform-95 hits 12-0 sometimes but is far from automatic', () => {
     const rate = perfectRate(uniformRatings(95), N);
-    expect(rate).toBeGreaterThan(0.05);
+    // Lowered from 0.05 (2026-06-10): the durability rewrite shortens careers to realistic
+    // lengths (~18 years at durability 95, vs the old ~41-43yr cap), giving fewer 12-0 shots.
+    expect(rate).toBeGreaterThan(0.035);
     expect(rate).toBeLessThan(0.45);
   });
 

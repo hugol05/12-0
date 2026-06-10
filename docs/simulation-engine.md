@@ -41,13 +41,25 @@ The game should be able to produce a LeBron-style longevity curve. A player who 
 
 ### Durability Modifiers
 
-| Durability Rating | Career Length | Injury Risk/Season | Late-Career OVR Shape |
-|-------------------|--------------|-------------------|-----------------------|
-| 95-99 | 19-22 seasons | 4-6% | Prime lasts to 32; lose ~0-1 OVR/year through 36, then ~1 OVR/year through 41 |
-| 90-94 | 17-20 seasons | 7-9% | Prime lasts to 31; lose ~1 OVR/year through 35, then ~1-2 OVR/year |
-| 80-89 | 15-18 seasons | 10-14% | Standard star aging; lose ~1-2 OVR/year after 31 |
-| 70-79 | 13-16 seasons | 15-20% | Decline starts around 29-30; lose ~2-3 OVR/year |
-| Below 70 | 10-13 seasons | 22-30% | Decline starts around 27-28; volatile drop-offs and early retirement risk |
+Career length (years in the league) is a **piecewise-linear function of the Durability rating**,
+anchored to these owner-specified points (`DURABILITY_YEARS` in `career.ts`):
+
+| Durability | 25 | 60 | 70 | 80 | 87 | 89 | 91 | 95 | 96 | 98 | 99 |
+|------------|----|----|----|----|----|----|----|----|----|----|----|
+| Years in league | 4 | 7 | 10 | 13 | 15 | 16 | 17 | 18 | 19 | 20 | 22 |
+
+Values between anchors are linearly interpolated; values below 25 or above 99 clamp to the end
+points. A career also gets a `±1` year roll for natural variance. `retirementAge = START_AGE
+(19) + years − 1`, so e.g. durability 89 → 16 years → retires at 34 (±1).
+
+| Durability Rating | Career Length (anchor) | Injury Risk/Season | Late-Career OVR Shape |
+|-------------------|------------------------|-------------------|-----------------------|
+| 99 | 22 (21+) seasons | 4-6% | Prime lasts to 32; lose ~0-1 OVR/year through 36, then ~1 OVR/year through 41 |
+| 95-98 | 18-20 seasons | 4-6% | Prime lasts to 32; lose ~0-1 OVR/year through 36, then ~1 OVR/year through 41 |
+| 90-94 | ~16-17 seasons | 7-9% | Prime lasts to 31; lose ~1 OVR/year through 35, then ~1-2 OVR/year |
+| 80-89 | ~13-16 seasons | 10-14% | Standard star aging; lose ~1-2 OVR/year after 31 |
+| 70-79 | ~10-13 seasons | 15-20% | Decline starts around 29-30; lose ~2-3 OVR/year |
+| Below 70 | ~7-10 seasons | 22-30% | Decline starts around 27-28; volatile drop-offs and early retirement risk |
 
 ### Example Longevity Curves
 
@@ -58,17 +70,21 @@ For a player with a 99 peak OVR:
 | 27 | 99 | 99 | 99 | 98 |
 | 32 | 99 | 98 | 96 | 92 |
 | 36 | 97-98 | 94-96 | 89-92 | 82-86 |
-| 39 | 95-96 | 90-93 | 84-88 | Retired/bench |
-| 41 | 94-95 | 87-90 | Retired/bench | Retired |
+| 39 | 95-96 | retired | retired | retired |
+| 41 | 94-95 | retired | retired | retired |
+
+(90 durability now retires around age 35 (16-17 years), so the 39/41 columns for 90/80/70
+durability are no longer reachable — only elite (95+) durability builds play into their 40s.)
 
 ### Retirement Trigger
 
 Retirement is calculated after each season. A player retires if:
-- `(age >= retirementAge)` from durability table AND `(OVR < 80)`
-- OR `(age >= retirementAge + 2)` regardless of OVR
-- OR (major injury at age 35+) with 50% retirement chance
+- `(age >= retirementAge)`, where `retirementAge` comes from the Durability → years-in-league
+  table above (with its `±1` year roll)
+- OR (season-ending injury within 2 years of `retirementAge`) with a 35% chance of retiring early
 
-**Exception:** Never retire a player with exactly 11 championships. Always give them one more shot at 12-0.
+**Exception:** Never retire a player with exactly 11 championships — always give them one more shot
+at 12-0. Reaching 12 championships always ends the career immediately (mission complete).
 
 ---
 
@@ -91,11 +107,15 @@ Each season runs through this pipeline:
 2. **Calculate Team Strength** = Player OVR + franchise base rating (heavily weighted towards player)
 3. **Regular Season** = Win total on a smooth, saturating curve of team strength (no hard cap, and no
    floor of 70 for champions):
-   `wins = 50 + 14·tanh((strength − 82)/14) + U(−7, 7)`, plus a rare (10%) "career year" bonus
-   `U(0, clamp((strength − 78)/1.8, 0, 12))`. Real-pool measurements: champion seasons average
-   **~56-60 wins** (high-50s/low-60s, like real NBA title teams) regardless of build quality; **70-win
-   seasons are an elite outlier (≈0.5-1.6% of seasons)**, 72+ rarer still (≈0.1-0.9%), and 76-78 only
-   ever appear for god-tier builds and even then on a hot-streak roll (≤0.1%).
+   `wins = 50 + 14·tanh((strength − 82)/14) + U(−7, 7)`, plus a "career year" bonus whose chance
+   AND ceiling both ramp up with strength: `hotChance = clamp((strength − 86)/7, 0, 1)`,
+   `hotCeiling = clamp((strength − 87)·1.2, 0, 12)`, bonus `= U(0, hotCeiling)` when triggered.
+   Real-pool measurements: champion seasons average **~56-65 wins** (50s-low 60s, like real NBA
+   title teams) regardless of build quality. A strong-but-not-elite build (94 OVR, ~93 strength)
+   posts a **70-win season ~3% of the time** (about 1 in 3 careers of 20 seasons). A true god build
+   (98 OVR/99 clutch, ~97 strength) posts 70+ win seasons **~15% of the time** (a few per career)
+   and 74+ ("breaking the 73-9 record") **~4% of the time** (≈50% chance of doing it at least once
+   across a career).
 4. **Playoff qualification** = Based on win total vs conference threshold
 5. **Playoff rounds** = Series-by-series, based on team strength differentials
 6. **Finals** = If reached, win/loss based on team strength + **Clutch bonus**

@@ -134,25 +134,44 @@ below). The owner's design intent, in one line each:
   inflation).
 - `clutchFinalsBonus`: `99→+.50, 97→+.40, 95→+.27, 93→+.20, 90→+.15, 87→+.08, 83→0, 78→−.08,
   72→−.16, else −.24` (CF gets half this). Series prob clamps at `0.99`.
-- `winsFromStrength = 50 + 14·tanh((strength−82)/14) + U(−7,7) + raresBonus` (10% chance of
-  `U(0, clamp((strength−78)/1.8, 0, 12))`) — smooth, no hard cap, **and no floor of 70 for
-  champions** (updated 2026-06-10 from an earlier `42 + 36·tanh(...)` curve that still skewed
-  champion seasons into the 70s). Real-pool measurement: champion seasons average **~56-60 wins**
-  across every build quality (from a 94-OVR build to a god build) — matching real NBA title teams
-  that win in the 50s/low-60s. **70-win seasons are an elite outlier (~0.5-1.6% of seasons)**, 72+
-  rarer (~0.1-0.9%), and 76-78 only appear for god-tier builds on a hot-streak roll (≤0.1%).
+- `winsFromStrength = 50 + 14·tanh((strength−82)/14) + U(−7,7) + hotBonus` — smooth, no hard cap,
+  and no floor of 70 for champions. **`hotBonus`** (updated 2026-06-10, round 2) is a "career year"
+  whose chance AND ceiling both scale with strength: `hotChance = clamp((strength−86)/7, 0, 1)`,
+  `hotCeiling = clamp((strength−87)·1.2, 0, 12)`, `bonus = U(0, hotCeiling)` when triggered. Tuned
+  empirically against the *real* strength distributions a career actually visits (most mass sits
+  well below the build's peak strength because of aging/franchise drift), via
+  `_balanceProbe.test.ts`'s win-tail output. Real-pool measurement: champion seasons average
+  **~56-65 wins** across every build quality — matching real NBA title teams in the 50s/low-60s.
+  - **94-OVR build (clutch 95): 70-win seasons ~3%** of all seasons (≈1-in-3 careers of 20 seasons)
+    — exactly the owner's "70 should be elite for a strong-but-not-god build" target.
+  - **God build (98-OVR/99 clutch): 70+ win seasons ~15%** (a few per career, ~2.4 of ~16.4
+    seasons), and **74+ ("breaking 73-9") ~4%** per season → **≈50% chance of doing it at least
+    once across a career** — exactly the owner's god-build target.
 
-### Measured (4,000 sims each, real pool)
-| Scenario | avg rings | reach 12 | 12-0 | avg Finals losses |
-|---|--:|--:|--:|--:|
-| Owner 94-OVR build (clutch 95) | 9.4 | 28% | **11%** | 1.2 |
-| God build (elite + clutch 99) | 12.0 | 99.6% | **87%** | 0.14 |
-| Optimal play (best-in-bucket, OVR ~92) | 7.5 | 24% | 15% | 1.5 |
-| Average / bad play | ~0 | 0% | 0% | — |
+### Durability rewrite (2026-06-10, round 2)
+Replaced the old discrete `retirementAge` buckets (90+→39, hard-capped at +2) with a
+**piecewise-linear durability → years-in-league curve**, anchored to the owner's spec: 87→15,
+89→16, 91→17, 95→18, 96→19, 98→20, 99→22 (with `±1` year variance). This **shortens careers
+substantially** for sub-95 durability builds (e.g. 90 durability: ~39-43yr cap → ~16-17yr), which
+is correct/intended (a 23-season NBA career was never realistic) but has a side effect: builds that
+need many seasons to rack up 12 rings now have noticeably fewer "shots". `shouldRetire` was
+simplified to `age >= retireAge` (+ TITLE_CAP / 11-rings exceptions, + a 35% early-retirement
+chance on a season-ending injury within 2 years of `retireAge`).
 
-Targets were: 94-OVR ~8-11 rings / 0-5 losses / 12-0 ~1-in-7; god ~90% 12-0; optimal ~20% reach 12 /
-~7 rings. All within tolerance. (Note: *optimal play maxes clutch to 99*, so its 12-0 rate — 15% —
-runs a bit above the owner's 8% estimate; reaching 12 at all is the limiter. Re-tune `ROUND_OPP` up a
-point if a harder reach-the-Finals grind is wanted.) The synthetic uniform-rating bands in
-`career.test.ts` were re-anchored to this calibration (uniform builds are intentionally far harder than
-real, clutch-stacked builds).
+### Measured (4,000 sims each, real pool, AFTER both the win-curve and durability changes)
+| Scenario | avgSeasons | avg rings | reach 12 | 12-0 | avg Finals losses |
+|---|--:|--:|--:|--:|--:|
+| Owner 94-OVR build (clutch 95, durability 90 → ~17yr career) | 17.2 | 7.7 | 8.9% | **5.0%** | 0.95 |
+| God build (elite + clutch 99, durability 97 → ~19.5yr cap, but TITLE_CAP ends it sooner) | 16.3 | 12.0 | 98.5% | **86.2%** | 0.13 |
+| Optimal play (best-in-bucket, OVR ~92) | 17.9 | 6.4 | 13.3% | 9.7% | 1.20 |
+| Average / bad play | 8.9-12.0 | ~0 | 0% | 0% | — |
+
+**Note:** the owner 94-OVR build's avg rings/12-0 dropped from the prior calibration (9.4/28%/11%
+→ 7.7/8.9%/5.0%) purely because its career is now ~6 seasons shorter (22.9 → 17.2) — the
+*per-season* ring rate is essentially unchanged (41% → 45%). The god build (whose career length is
+governed by `TITLE_CAP`, not `retireAge`) is unaffected. If the owner wants the 94-OVR build's
+*total* rings/12-0 numbers restored to the prior ~9.4/28%/11% despite the shorter, more-realistic
+career, the lever is `ROUND_OPP`/`clutchFinalsBonus` (raise the per-season title odds) — not
+revisited here since it wasn't part of this round's request and risks pushing the god build above
+its calibrated 86-87% 12-0. The synthetic uniform-rating bands in `career.test.ts` were re-anchored
+(`uniform-95` 12-0 floor lowered 0.05→0.035) to reflect the shorter careers.

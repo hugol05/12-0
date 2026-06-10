@@ -65,12 +65,29 @@ function ageFactor(age: number, durability: number): number {
   return Math.max(0.45, 1.0 - (age - 31) * k);
 }
 
-function retirementAge(durability: number): number {
-  if (durability >= 95) return 41;
-  if (durability >= 90) return 39;
-  if (durability >= 80) return 37;
-  if (durability >= 70) return 35;
-  return 32;
+// Durability -> career length (years in the league), anchored to specific 2K-style ratings:
+// 87->15, 89->16, 91->17, 95->18, 96->19, 98->20, 99->21+ (piecewise-linear between/around anchors).
+const DURABILITY_YEARS: ReadonlyArray<readonly [number, number]> = [
+  [25, 4], [60, 7], [70, 10], [80, 13], [87, 15], [89, 16], [91, 17], [95, 18], [96, 19], [98, 20], [99, 22],
+];
+
+function yearsFromDurability(durability: number): number {
+  const pts = DURABILITY_YEARS;
+  if (durability <= pts[0][0]) return pts[0][1];
+  if (durability >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [d0, y0] = pts[i];
+    const [d1, y1] = pts[i + 1];
+    if (durability <= d1) return y0 + ((y1 - y0) * (durability - d0)) / (d1 - d0);
+  }
+  return pts[pts.length - 1][1];
+}
+
+// Career starts at START_AGE (19), so playing `years` seasons retires at START_AGE + years - 1.
+// A small +/-1 year variance keeps careers from being perfectly deterministic by durability alone.
+function retirementAge(durability: number, rng: SeededRng): number {
+  const years = yearsFromDurability(durability) + rng.int(-1, 1);
+  return START_AGE + Math.max(3, Math.round(years)) - 1;
 }
 
 // Clutch is THE separator for deep playoff runs. The curve is steep at the top: only a near-perfect
@@ -99,19 +116,18 @@ function teamStrengthOf(franchiseBase: number, ovr: number): number {
 
 // Regular-season wins as a smooth, saturating function of team strength — no hard cap, and
 // crucially NO floor of 70 for champions. Most title teams (real NBA history included) win in the
-// 50s-low 60s; the tanh baseline saturates around there even for elite strength. A 70-win season is
-// an ELITE outlier, 72 rarer still, and only a truly god-tier build (strength ~95+) can ever flirt
-// with the high 70s — and even then only on a "career year" roll, not as the norm.
+// 50s-low 60s; the tanh baseline saturates around there even for elite strength.
 function winsFromStrength(strength: number, rng: SeededRng): number {
   const expected = 50 + 14 * Math.tanh((strength - 82) / 14);
   const variance = rng.range(-7, 7);
-  // Rare "career year": occasionally a strong team catches fire for a 70s-win season. The ceiling
-  // scales with strength, so only elite builds can ever approach the high 70s, and it's a tail event.
+  // "Career year" tail: both the chance of catching fire and how hot it gets ramp up with
+  // strength. A strong-but-not-elite team (~88-93 strength) rarely threatens 70 wins; a true
+  // god-tier team (~94+) catches fire often enough to post several 70+ (and the occasional
+  // 74+, 73-9-record-threatening) seasons across a career.
+  const hotChance = clamp((strength - 86) / 7, 0, 1);
+  const hotCeiling = clamp((strength - 87) * 1.2, 0, 12);
   let bonus = 0;
-  if (rng.chance(0.10)) {
-    const ceiling = clamp((strength - 78) / 1.8, 0, 12);
-    bonus = rng.range(0, ceiling);
-  }
+  if (rng.chance(hotChance)) bonus = rng.range(0, hotCeiling);
   return clamp(Math.round(expected + variance + bonus), 15, 82);
 }
 
@@ -172,7 +188,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
   const peakOvr = computeOvr(ratings);
   const durability = ratings.durability;
   const clutch = ratings.clutch;
-  const retireAge = retirementAge(durability);
+  const retireAge = retirementAge(durability, rng);
 
   // league model: every franchise gets a rating that drifts along a market/youth trajectory
   const league: LeagueTeam[] = franchises.map((f) => ({
@@ -281,7 +297,7 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
     });
 
     // retirement
-    if (shouldRetire(age, retireAge, ovr, injury, championships, rng)) break;
+    if (shouldRetire(age, retireAge, injury, championships, rng)) break;
     if (i > 30) break; // safety
 
     // movement (off-season)
@@ -322,14 +338,14 @@ export function simulateCareer(ctx: SimContext): SimulationResult {
 }
 
 function shouldRetire(
-  age: number, retireAge: number, ovr: number, injury: SeasonResult['injury'],
+  age: number, retireAge: number, injury: SeasonResult['injury'],
   championships: number, rng: SeededRng,
 ): boolean {
   if (championships >= TITLE_CAP) return true; // mission complete — ride off at 12 rings
   if (championships === 11) return false; // always give a shot at 12-0
-  if (age >= retireAge && ovr < 80) return true;
-  if (age >= retireAge + 2) return true;
-  if (injury === 'season-ending' && age >= 35 && rng.chance(0.5)) return true;
+  if (age >= retireAge) return true;
+  // a season-ending injury late in a long career can end things a year or two early
+  if (injury === 'season-ending' && age >= retireAge - 2 && rng.chance(0.35)) return true;
   return false;
 }
 
