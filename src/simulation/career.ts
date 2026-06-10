@@ -1,5 +1,6 @@
 import type { AttributeAssignment, RatingCategory, Ratings } from '@/types';
 import { computeOvr } from './categories';
+import { yearsFromDurability } from './durability';
 import { SeededRng } from './seededRng';
 import type {
   CareerSummary, FinalsSummary, MarketTier, SeasonResult, SeasonStatLine,
@@ -63,24 +64,6 @@ function ageFactor(age: number, durability: number): number {
   // decline: rate per year softens with durability
   const k = durability >= 95 ? 0.005 : durability >= 90 ? 0.011 : durability >= 80 ? 0.02 : durability >= 70 ? 0.03 : 0.045;
   return Math.max(0.45, 1.0 - (age - 31) * k);
-}
-
-// Durability -> career length (years in the league), anchored to specific 2K-style ratings:
-// 87->15, 89->16, 91->17, 95->18, 96->19, 98->20, 99->21+ (piecewise-linear between/around anchors).
-const DURABILITY_YEARS: ReadonlyArray<readonly [number, number]> = [
-  [25, 4], [60, 7], [70, 10], [80, 13], [87, 15], [89, 16], [91, 17], [95, 18], [96, 19], [98, 20], [99, 22],
-];
-
-function yearsFromDurability(durability: number): number {
-  const pts = DURABILITY_YEARS;
-  if (durability <= pts[0][0]) return pts[0][1];
-  if (durability >= pts[pts.length - 1][0]) return pts[pts.length - 1][1];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const [d0, y0] = pts[i];
-    const [d1, y1] = pts[i + 1];
-    if (durability <= d1) return y0 + ((y1 - y0) * (durability - d0)) / (d1 - d0);
-  }
-  return pts[pts.length - 1][1];
 }
 
 // Career starts at START_AGE (19), so playing `years` seasons retires at START_AGE + years - 1.

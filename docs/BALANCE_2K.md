@@ -166,6 +166,17 @@ chance on a season-ending injury within 2 years of `retireAge`).
 | Optimal play (best-in-bucket, OVR ~92) | 17.9 | 6.4 | 13.3% | 9.7% | 1.20 |
 | Average / bad play | 8.9-12.0 | ~0 | 0% | 0% | — |
 
+### Pipeline durability re-derivation (2026-06-10, round 3)
+Real players' Durability rating (`public/data/players.json`) is now derived from each player's
+actual `seasonsPlayed` via `durabilityFromYears`'s inverse, `durabilityFromYears` (shared module
+`src/simulation/durability.ts`), instead of 2K's `overall_durability` injury-resistance stat —
+so durability **correlates with real career length** across the whole pool (give your build
+LeBron's durability and you get a ~LeBron-length career). Re-ran `_balanceProbe.test.ts` after
+regenerating `public/data/*.json`: results are essentially unchanged from the round-2 table above
+(94-OVR build avgSeasons 17.2/avg rings 7.74/12-0 5.0%; god build avgSeasons 16.3/12-0 86.2%;
+optimal play avgSeasons 17.3/12-0 10.3%) — the pool-wide durability shuffle didn't move the
+calibrated bands. See `docs/data-strategy.md` "Durability (all players)" for the formula.
+
 **Note:** the owner 94-OVR build's avg rings/12-0 dropped from the prior calibration (9.4/28%/11%
 → 7.7/8.9%/5.0%) purely because its career is now ~6 seasons shorter (22.9 → 17.2) — the
 *per-season* ring rate is essentially unchanged (41% → 45%). The god build (whose career length is

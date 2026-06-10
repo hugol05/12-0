@@ -192,7 +192,7 @@ Ratings come from **two tiers**, in priority order:
 | Playmaking / Rebounding | The matching 2K group, 1:1. |
 | Defense | **Not** `group_defense` 1:1 — that composite buries elite rim protectors who have weak steals/perimeter (Gobert's group is 78 despite 95 interior / 80 block). Instead: `0.40·group_defense + 0.30·max(interior_defense, perimeter_defense) + 0.18·block + 0.12·help_defense_iq`. The `max(interior, perimeter)` anchors on the player's *strong* end so neither a rim protector nor a point-of-attack stopper is dragged by their off-position. Lifts true anchors (Gobert→95, Mobley/JJJ→88) without inflating non-defenders (Zion stays ~60 — 2K genuinely rates his interior D mediocre). |
 | Basketball IQ | `0.40·pass_iq + 0.30·shot_iq + 0.30·help_defense_iq`. |
-| Durability | `overall_durability`, 1:1. |
+| Durability | **Not** `overall_durability` — see "Durability (all players)" below. 2K's injury-resistance stat doesn't track real career length (e.g. Vince Carter's 27 years vs. 2K durability 79). |
 | Position | The 2K card's `position_1` (+ `position_2` if distinct), **preferred over** the box-score/Brescou position, which is often wrong for the fan (Zion shipped as SF; 2K lists him PF/C). |
 | Height/Wingspan | See below. |
 | Clutch | Not a 2K attribute — **derived** (see below). |
@@ -217,7 +217,32 @@ Used only for players not in the 2K set (then OVR-capped). Inputs are a **prime-
 | Athleticism | **Box stats are a weak proxy.** 1974+: `0.45·STL-rank + 0.35·ORB%-rank + 0.20·BLK-rank` (blocks demoted so plodding rim-protectors stop topping the scale). Pre-1974: `0.5·RPG + 0.5·PPG`. Famous reputations are finalised via curated overrides (boost flyers, de-rate plodders). | Required for many players | Must include evidence notes for ratings above 90. |
 | Basketball IQ | `0.5·(AST/TOV)-rank + 0.3·TS%-rank + 0.2·FT%-rank` | Yes | Lower before advanced stats coverage. |
 | Clutch | `0.5·PPG-rank + 0.3·TS%-rank + 0.2·USG%-rank` (baseline; curated `clutch` overrides for legends/extremes) | Required for extremes | Ratings below 65 or above 94 require evidence notes. |
-| Durability | `35 + (0.6·min(seasons/18,1) + 0.4·min(avgG/75,1))·60` | Yes | High when games/seasons are complete. |
+| Durability | See "Durability (all players)" below — not part of the 2K-vs-fallback split. | Yes | High when games/seasons are complete. |
+
+#### Durability (all players)
+
+Durability is computed the **same way for every player**, 2K-rated or not, and is deliberately
+**not** sourced from 2K's `overall_durability` (an in-game injury-resistance stat that doesn't
+track real career length — Vince Carter played 27 seasons but 2K rates his durability 79; Tim
+Duncan's ~19 seasons and 98 durability are roughly in line, but Derrick Rose's 17 injury-marred
+seasons would over-rate at 2K's 83).
+
+Instead, durability is **`durabilityFromYears(seasonsPlayed)`** (`src/simulation/durability.ts`)
+— the exact inverse of the engine's `yearsFromDurability` curve that turns a build's durability
+rating into a career length (`src/simulation/career.ts`). `seasonsPlayed` is the player's real
+count of NBA seasons from the box-score aggregates. A small `gamesAdj = clamp((avgG−65)·0.3,
+−8, 6)` nudges the result up/down for "ironman vs. injury-prone despite many years" flavor (avgG
+= average games played per season). Final value clamped to 25-99.
+
+This makes durability **round-trip**: feed a Frankenstein build LeBron's durability (≈98) and the
+engine's `yearsFromDurability` reproduces a ~LeBron-length (~20yr) career. Players whose 2K card
+exists still get `mapSkills`' other 6 categories + clutch/height from 2K — only durability is
+overridden with this seasons-played-derived value.
+
+For the ~185 "added 2020s" players who aren't in the box-score roster (current players the
+box-score history doesn't reach), `seasonsPlayed` doesn't exist — these use 2K's
+`years_in_the_nba` (when populated) through the same `durabilityFromYears` curve, falling back to
+`mapSkills`' `overall_durability` only if that field is empty.
 
 ### 5. Curated Overrides
 

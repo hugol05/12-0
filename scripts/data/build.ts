@@ -19,6 +19,7 @@ import {
   normName, toNum, pctToFrac, decadeOf, clamp, percentileRanker,
 } from './util.ts';
 import { loadTwok, loadCurrentTeams, mapSkills, heightRating, clutchRating, type ClutchConfig } from './twok.ts';
+import { durabilityFromYears } from '../../src/simulation/durability.ts';
 
 const RAW_HIST = 'https://raw.githubusercontent.com/peasant98/TheNBACSV/master/nbaNew.csv';
 const BRESCOU = 'https://raw.githubusercontent.com/Brescou/NBA-dataset-stats-player-team/main/player';
@@ -355,8 +356,14 @@ async function main(): Promise<void> {
     // Height: anchored to listed inches (tallest=99, 7'0">=90, 6'9"~84). Hidden from the user as a
     // number (shown as real height + folded into the archetype) but still feeds OVR (.08).
     const height = heightRating(a.p.heightIn);
-    const durRaw = 0.6 * Math.min(a.seasonsPlayed / 18, 1) + 0.4 * Math.min(a.avgG / 75, 1);
-    const durability = clamp(Math.round(35 + durRaw * 60), 25, 99);
+    // Durability = how long this player ACTUALLY played, expressed on the engine's scale via the
+    // inverse of yearsFromDurability (career.ts/durability.ts) — so giving your build a real
+    // player's durability reproduces roughly that player's real career length (give your build
+    // LeBron's durability and you get a LeBron-length career). avgG (games/season) nudges it +/-
+    // for "ironman vs. injury-prone despite many years" flavor, which also feeds the engine's
+    // per-season injury risk.
+    const gamesAdj = clamp((a.avgG - 65) * 0.3, -8, 6);
+    const durability = clamp(Math.round(durabilityFromYears(a.seasonsPlayed) + gamesAdj), 25, 99);
 
     const ratings: Record<string, number> = { shooting, height, playmaking, defense, rebounding, athleticism, basketballIq, clutch, durability };
 
@@ -369,6 +376,11 @@ async function main(): Promise<void> {
     if (tw) {
       twokMatched.add(a.p.key);
       Object.assign(ratings, mapSkills(tw.raw)); // shooting/playmaking/defense/rebounding/athleticism/IQ/durability
+      // Durability stays seasons-played-derived (computed above) for every player, 2K-rated or
+      // not — 2K's "durability" attribute is an in-game injury-resistance stat that does NOT
+      // correlate with how long the real player's career actually was (e.g. Vince Carter's 27
+      // years vs 2K durability 79). Re-assert our value over mapSkills' 2K durability.
+      ratings.durability = durability;
       ratings.clutch = clutchRating(tw.name, tw.overall, tw.intangibles, clutchCfg);
       ratings.height = heightRating(a.p.heightIn, tw.wingspanIn);
       wingspanIn = tw.wingspanIn;
@@ -511,6 +523,14 @@ async function main(): Promise<void> {
       height: heightRating(heightIn, tw.wingspanIn),
       clutch: clutchRating(tw.name, tw.overall, tw.intangibles, clutchCfg),
     };
+    // These players have no box-score `aggs` entry (no NBA history yet / not in our roster), so we
+    // can't derive durability from seasonsPlayed like the main pool. Use 2K's "years_in_the_nba"
+    // (populated for current-roster cards) via the same durabilityFromYears curve when available;
+    // otherwise fall back to mapSkills' 2K overall_durability (already in `ratings` via the spread).
+    const yearsInNba = Number(tw.raw['years_in_the_nba']);
+    if (Number.isFinite(yearsInNba) && yearsInNba > 0) {
+      ratings.durability = clamp(Math.round(durabilityFromYears(yearsInNba)), 25, 99);
+    }
     let id = personId ?? `t${sha256(key)}`;
     while (usedIds.has(id)) id = `${id}_`;
     usedIds.add(id);

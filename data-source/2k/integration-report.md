@@ -1,6 +1,6 @@
 # 2K rating-integration report
 
-Generated 2026-06-09 by `npm run data`. dataVersion 2026-06-09.1.
+Generated 2026-06-10 by `npm run data`. dataVersion 2026-06-10.1.
 
 - Roster shipped: **2545** players.
 - Rated from the 2K dataset (source of truth): **571**.
