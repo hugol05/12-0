@@ -57356,7 +57356,7 @@
       "defense": 99,
       "rebounding": 99,
       "athleticism": 99,
-      "basketballIq": 99,
+      "basketballIq": 93,
       "clutch": 97,
       "durability": 92
     },
@@ -61059,12 +61059,12 @@
       "tsPct": 0.585
     },
     "ratings": {
-      "shooting": 84,
+      "shooting": 87,
       "height": 84,
-      "playmaking": 92,
+      "playmaking": 96,
       "defense": 83,
-      "rebounding": 66,
-      "athleticism": 91,
+      "rebounding": 77,
+      "athleticism": 96,
       "basketballIq": 96,
       "clutch": 99,
       "durability": 98
@@ -63568,7 +63568,7 @@
     "ratings": {
       "shooting": 88,
       "height": 84,
-      "playmaking": 97,
+      "playmaking": 98,
       "defense": 86,
       "rebounding": 82,
       "athleticism": 84,
