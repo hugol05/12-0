@@ -236,14 +236,14 @@ export default function Results() {
           </Section>
         )}
 
-        {/* built-with DNA */}
+        {/* built-with DNA — includes Durability (the one non-OVR pick: it drives career length) */}
         <Section title="Built With">
           <ul className="poster__dna">
             {assignments
-              .filter((a) => a.category !== 'durability')
+              .slice()
               .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category))
               .map((a) => (
-                <li key={a.category} className="dna">
+                <li key={a.category} className={`dna ${a.category === 'durability' ? 'dna--durability' : ''}`}>
                   <span className="dna__cat">{CAT_LABEL[a.category]}</span>
                   <span className="dna__player">{playerName(a.playerId)}</span>
                   <span className="dna__rating">
@@ -253,6 +253,7 @@ export default function Results() {
                 </li>
               ))}
           </ul>
+          <p className="poster__dna-note">Durability sets career length — {career.seasonsPlayed} seasons here.</p>
         </Section>
 
         <footer className="poster__foot">Started on the {startTeam}</footer>
@@ -366,7 +367,7 @@ function brokenRecords(r: { career: { championships: number; totals: { points: n
 }
 
 const CAT_ORDER: RatingCategory[] = [
-  'shooting', 'height', 'playmaking', 'defense', 'rebounding', 'athleticism', 'basketballIq', 'clutch',
+  'shooting', 'height', 'playmaking', 'defense', 'rebounding', 'athleticism', 'basketballIq', 'clutch', 'durability',
 ];
 const CAT_LABEL: Record<RatingCategory, string> = {
   shooting: 'Shooting', height: 'Height', playmaking: 'Playmaking', defense: 'Defense',

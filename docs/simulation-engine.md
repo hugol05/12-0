@@ -49,8 +49,19 @@ anchored to these owner-specified points (`DURABILITY_YEARS` in `career.ts`):
 | Years in league | 4 | 7 | 10 | 13 | 15 | 16 | 17 | 18 | 19 | 20 | 22 |
 
 Values between anchors are linearly interpolated; values below 25 or above 99 clamp to the end
-points. A career also gets a `±1` year roll for natural variance. `retirementAge = START_AGE
-(19) + years − 1`, so e.g. durability 89 → 16 years → retires at 34 (±1).
+points. A career also gets a `±1` year roll for natural variance.
+
+**Minimum career floor (`MIN_RETIRE_AGE = 34`).** A pro doesn't walk away in his early 30s just
+because he's injury-prone — he grinds out a few diminished seasons first. So
+`retirementAge = max(MIN_RETIRE_AGE + rng(0,1), START_AGE + years − 1)`: even a low-durability
+build plays into the **mid-30s (retire ~34-35)** instead of vanishing at 31-32, while elite
+durability still runs well past the floor (durability 89 → 16 yr → retire ~34; 95 → 18 → ~36;
+99 → 22 → ~40). Crucially, the **post-31 decline is steep for low durability** (see the aging
+curve), so those floored extra years are a **low-OVR shell** — the player hangs on but is "bad"
+the last few years rather than retiring young. Because a declined player's OVR is low (and the
+OVR-gated clutch bonus means they win nothing late), careers lengthen **without inflating ring
+totals** — e.g. an 83-durability / 92-OVR build went from ~14 seasons (retire 32, 4.05 avg rings)
+to ~16.5 seasons (retire ~34-35, 4.22 avg rings): +2.5 seasons, +0.17 rings.
 
 | Durability Rating | Career Length (anchor) | Injury Risk/Season | Late-Career OVR Shape |
 |-------------------|------------------------|-------------------|-----------------------|
@@ -80,8 +91,9 @@ durability are no longer reachable — only elite (95+) durability builds play i
 
 Retirement is calculated after each season. A player retires if:
 - `(age >= retirementAge)`, where `retirementAge` comes from the Durability → years-in-league
-  table above (with its `±1` year roll)
+  table above (with its `±1` year roll) **floored at `MIN_RETIRE_AGE` (~34-35)**
 - OR (season-ending injury within 2 years of `retirementAge`) with a 35% chance of retiring early
+  (this is how genuinely fragile builds can still end before the floor)
 
 **Exception:** Never retire a player with exactly 11 championships — always give them one more shot
 at 12-0. Reaching 12 championships always ends the career immediately (mission complete).

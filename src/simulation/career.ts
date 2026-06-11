@@ -61,16 +61,32 @@ function ageFactor(age: number, durability: number): number {
   if (age <= 22) return lerp(0.82, 0.92, (age - START_AGE) / (22 - START_AGE));
   if (age <= 26) return lerp(0.92, 0.98, (age - 22) / 4);
   if (age <= 31) return 0.98 + 0.02 * (1 - Math.abs(29 - age) / 5); // peak ~29, eases 0.98->1.0->0.98
-  // decline: rate per year softens with durability
-  const k = durability >= 95 ? 0.005 : durability >= 90 ? 0.011 : durability >= 80 ? 0.02 : durability >= 70 ? 0.03 : 0.045;
-  return Math.max(0.45, 1.0 - (age - 31) * k);
+  // Post-31 decline rate per year, softening sharply with durability. The low end is STEEP on
+  // purpose: a low-durability player no longer retires young (see MIN_RETIRE_AGE) — instead they
+  // hang on a few extra years as a diminished, low-OVR role player, so the late years are "bad"
+  // rather than absent. Elite durability (95+) still ages gracefully into the 40s (LeBron-style).
+  const k = durability >= 95 ? 0.006
+    : durability >= 90 ? 0.013
+    : durability >= 85 ? 0.028
+    : durability >= 80 ? 0.046
+    : durability >= 70 ? 0.064
+    : 0.085;
+  return Math.max(0.40, 1.0 - (age - 31) * k);
 }
+
+// A pro doesn't usually walk away in his early 30s just because he's injury-prone — he grinds out a
+// few diminished seasons first. So career length has a FLOOR: even low durability plays into the
+// mid-30s (retire ~34-35), but the steep low-durability decline above makes those extra years
+// low-OVR (and the OVR-gated clutch bonus means they win nothing) — so careers lengthen WITHOUT
+// inflating ring totals. Elite durability still runs well past the floor (yearsFromDurability).
+const MIN_RETIRE_AGE = 34;
 
 // Career starts at START_AGE (19), so playing `years` seasons retires at START_AGE + years - 1.
 // A small +/-1 year variance keeps careers from being perfectly deterministic by durability alone.
 function retirementAge(durability: number, rng: SeededRng): number {
   const years = yearsFromDurability(durability) + rng.int(-1, 1);
-  return START_AGE + Math.max(3, Math.round(years)) - 1;
+  const natural = START_AGE + Math.max(3, Math.round(years)) - 1;
+  return Math.max(MIN_RETIRE_AGE + rng.int(0, 1), natural); // floor ~34-35 unless durability earns more
 }
 
 // Clutch is THE separator for deep playoff runs. The curve is steep at the top: only a near-perfect

@@ -110,6 +110,11 @@ const BUILD_GOD: Ratings = { shooting: 98, height: 96, playmaking: 97, defense: 
 // "Clutch merchant" — owner's reported 91-OVR run that went 12-0: only ~91 OVR but maxed clutch/IQ.
 // Target AFTER fix: 12-0 should be near-impossible (<~2%); elite clutch alone must not buy titles.
 const BUILD_CLUTCH_MERCHANT: Ratings = { shooting: 90, height: 83, playmaking: 95, defense: 82, rebounding: 94, athleticism: 86, basketballIq: 99, clutch: 99, durability: 95 };
+// "The Tower" — owner's 92-OVR / 93-clutch build with only ~83 durability. It retired at 32 (14
+// seasons), which the owner found too young. After the career-length floor + steeper low-durability
+// decline, it should last to ~34-35 but with low-OVR final years — so career LENGTHENS without its
+// ring total inflating (the extra years are non-productive).
+const BUILD_TOWER: Ratings = { shooting: 92, height: 87, playmaking: 96, defense: 91, rebounding: 97, athleticism: 84, basketballIq: 93, clutch: 93, durability: 83 };
 
 // On-demand balance harness — excluded from the normal suite. Run with:
 //   BALANCE=1 npx vitest run src/simulation/_balanceProbe.test.ts
@@ -117,6 +122,7 @@ describe.runIf(!!process.env.BALANCE)('balance probe (real pool + real engine)',
   it('named builds — target: 94-OVR ~8-11 rings/0-5 losses/12-0 ~14%; god ~90% 12-0', () => {
     run(fixedBuild(BUILD_94), 4000, `OWNER 94-OVR (clutch 95)  computeOvr=${computeOvr(BUILD_94)}`);
     run(fixedBuild(BUILD_CLUTCH_MERCHANT), 4000, `CLUTCH MERCHANT (91-OVR/99-clutch) computeOvr=${computeOvr(BUILD_CLUTCH_MERCHANT)}`);
+    run(fixedBuild(BUILD_TOWER), 4000, `TOWER (92-OVR/93-clutch, dur 83) computeOvr=${computeOvr(BUILD_TOWER)}`);
     run(fixedBuild(BUILD_GOD), 4000, `GOD BUILD (clutch 99)     computeOvr=${computeOvr(BUILD_GOD)}`);
     run(perfectBuild, 4000, 'PERFECT (global-max each cat)');
     expect(true).toBe(true);

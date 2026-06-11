@@ -229,6 +229,28 @@ The gate only bites in the 89-94 OVR range (full by 94), so the calibrated 94-OV
 builds are untouched, the bad-play floor stays 0, and sub-elite builds now genuinely have to develop
 elite OVR — not just stack clutch — to chase a perfect run.
 
+### Career-length floor — "don't retire young, just decline" (2026-06-10, round 6)
+**Problem reported:** a 92-OVR build with only ~83 durability retired at **age 32** (14 seasons),
+which the owner found too young — and durability wasn't shown on the Results screen. **Fix (two
+parts, `career.ts`):** (1) a **minimum retirement age** `MIN_RETIRE_AGE = 34` floors career length so
+even mediocre durability plays into the mid-30s (retire ~34-35); (2) the **post-31 decline is
+steeper for low durability** (`k`: ≥95 → .006, ≥90 → .013, ≥85 → .028, ≥80 → .046, ≥70 → .064, else
+.085) so the floored extra years are a **low-OVR shell** — the player hangs on but is "bad" the last
+few years rather than vanishing. Because those declined years win nothing (low OVR ⇒ the round-5 OVR
+gate kills the clutch bonus), **careers lengthen without inflating rings.** Durability is now also
+shown in the Results "Built With" list (it was filtered out) with a "Durability sets career length —
+N seasons" note. Probe (`BUILD_TOWER` regression scenario added):
+
+| Scenario | avgSeasons (retire age) | avg rings | 12-0 |
+|---|--:|--:|--:|
+| Tower (92-OVR / dur 83) | **14.0 → 16.5** (32 → ~34-35) | 4.05 → **4.22** | 0% |
+| Owner 94-OVR (dur 90) | 17.2 → 17.5 | 8.25 → **8.19** | 7.2% → 6.1% |
+| God build (dur 97) | 15.8 → 15.9 | **~12** (TITLE_CAP) | 87% |
+
+So the Tower plays ~2.5 more (declined) seasons for +0.17 rings; the calibrated builds are
+essentially unchanged (the 94-OVR even a touch harder), and the bad-play floor is intact. Elite
+durability (95+) still ages gracefully into the 40s (LeBron longevity preserved).
+
 **Note:** the owner 94-OVR build's avg rings/12-0 dropped from the prior calibration (9.4/28%/11%
 → 7.7/8.9%/5.0%) purely because its career is now ~6 seasons shorter (22.9 → 17.2) — the
 *per-season* ring rate is essentially unchanged (41% → 45%). The god build (whose career length is

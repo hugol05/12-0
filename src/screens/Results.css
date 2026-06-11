@@ -163,6 +163,14 @@
 .dna__player { color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dna__rating { font-family: var(--font-mono); color: var(--gold-primary); font-weight: var(--weight-semibold); text-align: right; font-variant-numeric: tabular-nums; }
 .dna__badge { justify-self: end; }
+/* Durability is the one pick that isn't part of OVR — set it apart with a hairline
+   divider and a quieter rating colour so it reads as "career length", not a skill. */
+.dna--durability { border-top: 1px solid var(--border-subtle); margin-top: 2px; padding-top: 6px; }
+.dna--durability .dna__rating { color: var(--text-secondary); }
+.poster__dna-note {
+  margin-top: var(--space-2); font-family: var(--font-mono); font-size: var(--text-xs);
+  color: var(--text-tertiary); letter-spacing: 0.02em;
+}
 
 .poster__foot { margin-top: auto; text-align: center; font-size: var(--text-xs); color: var(--text-tertiary); padding-top: var(--space-2); }
 
