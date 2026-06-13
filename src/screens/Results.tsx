@@ -105,13 +105,14 @@ export default function Results() {
   const share = async () => {
     if (shareState === 'working') return;
     setShareState('working');
-    const url = buildShareUrl();
-    const line = `I went ${finals.wins}–${finals.losses} in the Finals on 12-0.`;
+    const line = perfect 
+      ? `I went a PERFECT 12–0 in the Finals on 12-0 🏆\n\nhttps://12-0.me` 
+      : `I went ${finals.wins}–${finals.losses} in the Finals on 12-0 🏆\n\nhttps://12-0.me`;
     const slug = `12-0-${legacyTier.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     const res = await shareCareerImage(buildShareData(), {
       fileName: slug,
       title: '12-0',
-      text: url ? `${line} Replay my exact run: ${url}` : line,
+      text: line,
     });
     if (res === 'shared') setShareState('shared');
     else if (res === 'downloaded') setShareState('saved');
@@ -131,10 +132,10 @@ export default function Results() {
   // site's OG card). Complements the image share — best path on desktop, where the
   // Web Share sheet usually isn't available.
   const tweet = () => {
-    const url = buildShareUrl() ?? 'https://12-0.me';
+    const url = 'https://12-0.me';
     const text = perfect
-      ? `I built “${nick}” and went a PERFECT 12–0 in the Finals on 12-0 🏆 — past Bill Russell’s 11 rings. Build your god player:`
-      : `I built “${nick}” and went ${finals.wins}–${finals.losses} in the Finals on 12-0, chasing Bill Russell’s 11 rings. Beat my run:`;
+      ? `I went a PERFECT 12–0 in the Finals on 12-0 🏆\n\n`
+      : `I went ${finals.wins}–${finals.losses} in the Finals on 12-0 🏆\n\n`;
     const intent = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(intent, '_blank', 'noopener,noreferrer');
   };

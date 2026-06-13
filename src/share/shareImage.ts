@@ -153,7 +153,7 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
   ctx.fillStyle = SECONDARY;
   ctx.fillText(diff, W - PAD - dw - 20, y + 35);
 
-  y += 130;
+  y += 80;
 
   // ── hero: record (left) + peak OVR (right) ──
   ctx.textAlign = 'left';
@@ -174,14 +174,14 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
   ctx.fillStyle = SECONDARY;
   ctx.fillText('PEAK OVR', W - PAD, y + 30);
 
-  y += 220;
+  y += 180;
 
   if (d.perfect) {
     ctx.textAlign = 'left';
     ctx.font = `700 24px ${MONO}`;
     ctx.fillStyle = GOLD;
     ctx.fillText('★ RECORD BROKEN — PERFECT FINALS', PAD, y);
-    y += 44;
+    y += 40;
   }
 
   // ── nickname + archetype ──
@@ -189,12 +189,12 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
   ctx.font = `600 56px ${DISPLAY}`;
   ctx.fillStyle = WHITE;
   ctx.fillText(fit(ctx, d.nick, W - PAD * 2), PAD, y + 44);
-  y += 78;
+  y += 64;
   ctx.font = `500 28px ${MONO}`;
   ctx.fillStyle = GOLD_DEEP;
   const sub = [d.archetype, d.height].filter(Boolean).join('  ·  ');
   ctx.fillText(fit(ctx, sub, W - PAD * 2), PAD, y + 22);
-  y += 70;
+  y += 44;
 
   // divider
   const divider = (yy: number) => {
@@ -206,7 +206,7 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
     ctx.stroke();
   };
   divider(y);
-  y += 44;
+  y += 32;
 
   // ── awards row (up to 5 chips) ──
   const awards = d.awards.slice(0, 5);
@@ -234,9 +234,9 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
       ctx.fillText(fit(ctx, a.label.toUpperCase(), chipW - 16), x + chipW / 2, y + 92);
       x += chipW + gap;
     }
-    y += chipH + 44;
+    y += chipH + 32;
     divider(y);
-    y += 44;
+    y += 32;
   }
 
   // ── career averages ──
@@ -263,18 +263,18 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
     ctx.fillStyle = TERTIARY;
     ctx.fillText(l, cx, y + 84);
   });
-  y += 128;
+  y += 100;
   divider(y);
-  y += 44;
+  y += 32;
 
   // ── built with ──
   ctx.textAlign = 'left';
   ctx.font = `500 24px ${MONO}`;
   ctx.fillStyle = SECONDARY;
   ctx.fillText('BUILT WITH', PAD, y);
-  y += 38;
+  y += 32;
   const rows = d.builtWith.slice(0, 8);
-  const rowH = (H - PAD - 70 - y) / Math.max(rows.length, 1);
+  const rowH = (H - PAD - 30 - y) / Math.max(rows.length, 1);
   const ratingX = W - PAD;
   const playerX = PAD + 320;
   for (const r of rows) {
