@@ -21,6 +21,9 @@ export interface ShareDna {
   cat: string;
   player: string;
   rating: string;
+  headshotUrl?: string;
+  teamId?: string;
+  teamAbbr?: string;
 }
 export interface ShareCardData {
   wins: number;
@@ -44,6 +47,8 @@ export interface ShareImageOptions {
 }
 
 export type ShareImageResult = 'shared' | 'downloaded' | 'cancelled' | 'error';
+
+import { getTeamColors } from '../theme/teamColors';
 
 /* ── palette (mirrors src/styles/tokens.css) ───────────────────────────── */
 const GOLD = '#d4a853';
@@ -96,6 +101,16 @@ function fit(ctx: CanvasRenderingContext2D, text: string, maxW: number): string 
   let t = text;
   while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
   return t + '…';
+}
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
 }
 
 /** Draws the whole card and returns a PNG blob. */
@@ -276,17 +291,56 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
   const rows = d.builtWith.slice(0, 8);
   const rowH = (H - PAD - 30 - y) / Math.max(rows.length, 1);
   const ratingX = W - PAD;
-  const playerX = PAD + 320;
-  for (const r of rows) {
+  const playerStartX = PAD + 260; // Pulled back slightly to fit images
+
+  const headshots = await Promise.all(
+    rows.map((r) => r.headshotUrl
+      ? loadImage(`https://wsrv.nl/?url=${encodeURIComponent(r.headshotUrl)}&w=64&h=64&fit=cover&mask=circle`)
+      : Promise.resolve(null)
+    )
+  );
+
+  rows.forEach((r, i) => {
     const cy = y + rowH / 2 + 10;
     ctx.textAlign = 'left';
     ctx.font = `500 26px ${MONO}`;
     ctx.fillStyle = SECONDARY;
     ctx.fillText(r.cat.toUpperCase(), PAD, cy);
 
+    let currentX = playerStartX;
+
+    // Draw team badge
+    if (r.teamId && r.teamAbbr) {
+      const colors = getTeamColors(r.teamId);
+      const tw = 48;
+      const th = 26;
+      const tx = currentX;
+      const ty = cy - 20;
+
+      ctx.fillStyle = colors.primary;
+      roundRect(ctx, tx, ty, tw, th, 6);
+      ctx.fill();
+
+      ctx.textAlign = 'center';
+      ctx.font = `700 13px ${MONO}`;
+      ctx.fillStyle = colors.text;
+      ctx.fillText(r.teamAbbr, tx + tw / 2, ty + th / 2 + 5);
+
+      currentX += tw + 16;
+    }
+
+    // Draw headshot
+    const img = headshots[i];
+    if (img) {
+      const size = 32;
+      ctx.drawImage(img, currentX, cy - 24, size, size);
+      currentX += size + 16;
+    }
+
+    ctx.textAlign = 'left';
     ctx.font = `500 30px ${BODY}`;
     ctx.fillStyle = WHITE;
-    ctx.fillText(fit(ctx, r.player, ratingX - playerX - 90), playerX, cy);
+    ctx.fillText(fit(ctx, r.player, ratingX - currentX - 90), currentX, cy);
 
     ctx.textAlign = 'right';
     ctx.font = `700 30px ${MONO}`;
@@ -300,7 +354,7 @@ export async function renderCareerCard(d: ShareCardData): Promise<Blob> {
     ctx.lineTo(W - PAD, y + rowH);
     ctx.stroke();
     y += rowH;
-  }
+  });
 
   // ── footer ──
   ctx.textAlign = 'center';

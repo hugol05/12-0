@@ -81,13 +81,19 @@ export default function Results() {
     const builtWith: ShareCardData['builtWith'] = assignments
       .filter((a) => a.category !== 'durability')
       .sort((a, b) => CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category))
-      .map((a) => ({
-        cat: CAT_LABEL[a.category],
-        player: playerName(a.playerId),
-        rating: a.category === 'height'
-          ? formatHeight(data?.playersById.get(a.playerId)?.height)
-          : String(a.rating),
-      }));
+      .map((a) => {
+        const p = data?.playersById.get(a.playerId);
+        return {
+          cat: CAT_LABEL[a.category],
+          player: playerName(a.playerId),
+          rating: a.category === 'height'
+            ? formatHeight(p?.height)
+            : String(a.rating),
+          headshotUrl: p?.photo?.url,
+          teamId: a.source.franchise,
+          teamAbbr: abbr(a.source.franchise),
+        };
+      });
     return {
       wins: finals.wins, losses: finals.losses, perfect,
       peakOvr: career.peakOvr, nick, archetype, height: formatHeight(heightPlayer?.height),
