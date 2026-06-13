@@ -4,7 +4,6 @@ import { Home, Twitter } from 'lucide-react';
 import type { RatingCategory } from '@/types';
 import { useGameStore } from '@/store/gameStore';
 import { useGameData } from '@/data/useGameData';
-import { encodeBuild, shareUrl } from '@/share/shareLink';
 import { shareCareerImage, type ShareCardData } from '@/share/shareImage';
 import { PlayerSilhouette } from '@/components/PlayerSilhouette';
 import { TeamBadge } from '@/components/TeamBadge';
@@ -69,11 +68,6 @@ export default function Results() {
 
   const playAgain = () => { reset(); navigate('/'); };
   const goHome = () => navigate('/');
-
-  const buildShareUrl = (): string | undefined => {
-    const code = encodeBuild({ difficulty, seed, dataVersion: result.dataVersion, franchise, assignments });
-    return code ? shareUrl(code) : undefined;
-  };
 
   // Build the compact share-card data and render it to a PNG (canvas), then open
   // the system share sheet so it can be posted to Twitter/X, Messages, etc. —
