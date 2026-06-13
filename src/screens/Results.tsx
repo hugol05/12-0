@@ -22,7 +22,6 @@ export default function Results() {
   const reset = useGameStore((s) => s.reset);
   const difficulty = useGameStore((s) => s.difficulty);
   const seed = useGameStore((s) => s.seed);
-  const franchise = useGameStore((s) => s.franchise);
   const assignments = useGameStore((s) => s.assignments);
   // The shared image is drawn on a canvas (see share/shareImage) — a compact 4:5
   // card with the record, OVR, archetype, awards, averages and Built-With list.
